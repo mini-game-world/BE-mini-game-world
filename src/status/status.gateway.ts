@@ -86,7 +86,9 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       // 일시적으로 술래 상태에서 제외된 유저들을 저장하는 Set
       const temporarilyExcludedUsers = new Set<string>();
 
-      const updatedBombUserList = this.bombUserList.map(bombUserId => {
+      const updatedBombUserList: string[] = [];
+
+      this.bombUserList.forEach(bombUserId => {
         const bombUserPosition = this.clientsPosition.get(bombUserId);
         if (bombUserPosition) {
           const overlappingUser = Array.from(this.clientsPosition.entries()).find(([userId, position]) => {
@@ -96,23 +98,22 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
             }
             return false;
           });
+
           if (overlappingUser) {
-            // Replace the overlapping bomb user with a non-overlapping user from playUserList
-            const nonOverlappingUser = Array.from(this.clientsPosition.keys()).find(
-              userId => !this.bombUserList.includes(userId) && userId !== overlappingUser[0] && playUserList.has(userId) && !temporarilyExcludedUsers.has(userId)
-            );
-            if (nonOverlappingUser) {
-              updated = true;
-              // 새롭게 술래가 된 유저를 일정 시간 동안 술래 상태에서 제외
-              temporarilyExcludedUsers.add(nonOverlappingUser);
-              setTimeout(() => {
-                temporarilyExcludedUsers.delete(nonOverlappingUser);
-              }, 1000); // 1초 동안 술래 상태를 유지
-              return nonOverlappingUser;
-            }
+            updated = true;
+            updatedBombUserList.push(overlappingUser[0]);
+
+            // 새롭게 술래가 된 유저를 일정 시간 동안 술래 상태에서 제외
+            temporarilyExcludedUsers.add(overlappingUser[0]);
+            setTimeout(() => {
+              temporarilyExcludedUsers.delete(overlappingUser[0]);
+            }, 1000); // 1초 동안 술래 상태를 유지
+          } else {
+            updatedBombUserList.push(bombUserId);
           }
+        } else {
+          updatedBombUserList.push(bombUserId);
         }
-        return bombUserId;
       });
 
       if (updated) {
