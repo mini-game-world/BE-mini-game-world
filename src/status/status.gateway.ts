@@ -71,8 +71,8 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     const clientData = this.clientsPosition.get(client.id);
     if (clientData) {
       const room = clientData.room;
-      const logMessage = `playerPosition [${client.id}] x: ${data.x}, y: ${data.y} in room ${room}`;
-      this.logger.log(logMessage);
+      // const logMessage = `playerPosition [${client.id}] x: ${data.x}, y: ${data.y} in room ${room}`;
+      // this.logger.log(logMessage);
       this.clientsPosition.set(client.id, { room, x: data.x, y: data.y });
 
       client.to(room).emit("playerMoved", { playerId: client.id, x: data.x, y: data.y });
@@ -93,7 +93,6 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
             const nonOverlappingUser = Array.from(this.clientsPosition.keys()).find(
               userId => !this.bombUserList.includes(userId) && userId !== overlappingUser[0]
             );
-            client.to(room).emit("bombUsers", this.bombUserList);
             if (nonOverlappingUser) {
               return nonOverlappingUser;
             }
@@ -102,7 +101,10 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         return bombUserId;
       });
       this.bombUserList = updatedBombUserList;
-      this.server.to(room).emit("updatedBombUsers", this.bombUserList);
+
+      this.logger.debug(`bombUserList ${ this.bombUserList}`)
+
+      this.server.to(room).emit("bombUsers", this.bombUserList);
 
     }
   }
@@ -143,6 +145,9 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     const timerInterval = setInterval(() => {
       remainingTime -= 1;
       this.server.to(room).emit("bombTimer", { remainingTime });
+
+      this.logger.debug(`bombTimer ${remainingTime}`)
+
       if (remainingTime <= 0) {
         this.server.to(room).emit("bombTimer", { remainingTime });
         /**
@@ -151,9 +156,13 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
          */
         this.statusService.deleteBombUserInPlayUserList(this.bombUserList);
         const newBombUser = this.statusService.getNewBombUsers();
+
+        this.logger.debug(`newBombUser ${newBombUser}`)
         this.server.to(room).emit("bombUsers", newBombUser);
+
         const checkWinner = this.statusService.checkWinner();
         if (checkWinner) {
+          this.logger.debug(`checkWinner ${checkWinner}`)
           this.server.to(room).emit("gameWinner", checkWinner);
           this.gameStartFlag = true;
           clearInterval(timerInterval); // 루프 종료
