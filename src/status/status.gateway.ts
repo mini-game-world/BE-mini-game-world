@@ -66,13 +66,12 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     }
   }
 
+
   @SubscribeMessage("playerMovement")
   playerPosition(client: Socket, data: { x: string; y: string }): void {
     const clientData = this.clientsPosition.get(client.id);
     if (clientData) {
       const room = clientData.room;
-      // const logMessage = `playerPosition [${client.id}] x: ${data.x}, y: ${data.y} in room ${room}`;
-      // this.logger.log(logMessage);
       this.clientsPosition.set(client.id, { room, x: data.x, y: data.y });
 
       client.to(room).emit("playerMoved", { playerId: client.id, x: data.x, y: data.y });
@@ -80,7 +79,12 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       if (this.bombUserList.length === 0) {
         return; // bombUserList가 비어 있으면 로직을 실행하지 않음
       }
+
+      const playUserList = this.statusService.getPlayGameUserMap();
       let updated = false;
+
+      // 일시적으로 술래 상태에서 제외된 유저들을 저장하는 Set
+      const temporarilyExcludedUsers = new Set<string>();
 
       const updatedBombUserList = this.bombUserList.map(bombUserId => {
         const bombUserPosition = this.clientsPosition.get(bombUserId);
@@ -93,12 +97,17 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
             return false;
           });
           if (overlappingUser) {
-            // Replace the overlapping bomb user with a non-overlapping user
+            // Replace the overlapping bomb user with a non-overlapping user from playUserList
             const nonOverlappingUser = Array.from(this.clientsPosition.keys()).find(
-              userId => !this.bombUserList.includes(userId) && userId !== overlappingUser[0]
+              userId => !this.bombUserList.includes(userId) && userId !== overlappingUser[0] && playUserList.has(userId) && !temporarilyExcludedUsers.has(userId)
             );
             if (nonOverlappingUser) {
               updated = true;
+              // 새롭게 술래가 된 유저를 일정 시간 동안 술래 상태에서 제외
+              temporarilyExcludedUsers.add(nonOverlappingUser);
+              setTimeout(() => {
+                temporarilyExcludedUsers.delete(nonOverlappingUser);
+              }, 1000); // 1초 동안 술래 상태를 유지
               return nonOverlappingUser;
             }
           }
@@ -113,6 +122,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       }
     }
   }
+
 
   afterInit(server: any): any {
     this.logger.log("Init");
@@ -139,8 +149,9 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
     this.statusService.setPlayGameUser(this.clientsPosition)
 
+
     const playGameuserList = this.statusService.getPlayGameUserList();
-    this.logger.log(`Bomb game started in room ${room}`);
+    this.logger.log(`Bomb game started in room ${room}  and usrlist ${playGameuserList}`);
     this.server.to(room).emit("startBombGame", playGameuserList);
 
     this.bombUserList =  this.statusService.getBombUsers();
@@ -172,7 +183,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
           this.gameStartFlag = true;
           clearInterval(timerInterval); // 루프 종료
         }
-        remainingTime = this.BOMB_TIME; // 타이머를 다시셋팅
+        remainingTime = this.BOMB_TIME; // 타이머를 다시셋
       }
     }, 1000);
   }

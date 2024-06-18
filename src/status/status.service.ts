@@ -36,6 +36,10 @@ export class StatusBombGameService {
     return Object.fromEntries(this.playGameUser);
   }
 
+  getPlayGameUserMap() {
+    return this.playGameUser;
+  }
+
   deleteBombUserInPlayUserList(newBombList: string[]) {
     newBombList.forEach(userId => {
       this.playGameUser.delete(userId);
