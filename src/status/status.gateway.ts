@@ -23,7 +23,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   private MIN_PLAYERS_FOR_BOMB_GAME: number = 3;
   private BOMB_TIME: number = 10;
-  private BOMB_RADIUS: number = 5;
+  private BOMB_RADIUS: number = 40;
   private gameStartFlag: boolean = true;
 
   private bombUserList: string[];
@@ -77,7 +77,8 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
       client.to(room).emit("playerMoved", { playerId: client.id, x: data.x, y: data.y });
 
-      // Check for overlapping positions within a certain distance and adjust bombUserList
+      let updated = false;
+
       const updatedBombUserList = this.bombUserList.map(bombUserId => {
         const bombUserPosition = this.clientsPosition.get(bombUserId);
         if (bombUserPosition) {
@@ -94,18 +95,19 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
               userId => !this.bombUserList.includes(userId) && userId !== overlappingUser[0]
             );
             if (nonOverlappingUser) {
+              updated = true;
               return nonOverlappingUser;
             }
           }
         }
         return bombUserId;
       });
-      this.bombUserList = updatedBombUserList;
 
-      this.logger.debug(`bombUserList ${ this.bombUserList}`)
-
-      this.server.to(room).emit("bombUsers", this.bombUserList);
-
+      if (updated) {
+        this.bombUserList = updatedBombUserList;
+        this.logger.debug(`Updated bombUserList: ${this.bombUserList}`);
+        this.server.to(room).emit("bombUsers", this.bombUserList);
+      }
     }
   }
 
