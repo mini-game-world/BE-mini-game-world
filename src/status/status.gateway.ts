@@ -20,7 +20,12 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   private MIN_PLAYERS_FOR_BOMB_GAME:number = 3;
 
+  private BOMB_TIME:number =10;
+  private BOMB_RADIUS: number = 5;
+
   private gameStartFlag: boolean =true
+
+  private bombUserList: string[];
 
   private logger: Logger = new Logger('Status-Gateway');
 
@@ -60,7 +65,6 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     // 방에 n 명 이상 존재시 게임시작 신호를 보내줘야해~
     if(this.clientsPosition.size > this.MIN_PLAYERS_FOR_BOMB_GAME && this.gameStartFlag){
       this.bombGameStart(room)
-      this.statusService.setPlayGameUser(this.clientsPosition)
     }
   }
 
@@ -74,6 +78,37 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       this.clientsPosition.set(client.id, { room, x: data.x, y: data.y });
 
       client.to(room).emit('playerMoved', { playerId: client.id, x: data.x, y: data.y });
+
+      // Check for overlapping positions within a certain distance and adjust bombUserList
+      const updatedBombUserList = this.bombUserList.map(bombUserId => {
+        const bombUserPosition = this.clientsPosition.get(bombUserId);
+        if (bombUserPosition) {
+          const overlappingUser = Array.from(this.clientsPosition.entries()).find(([userId, position]) => {
+            if (userId !== bombUserId && position.room === bombUserPosition.room) {
+              const distance = Math.sqrt(Math.pow( parseFloat(bombUserPosition.x) - parseFloat(position.x), 2) + Math.pow(parseFloat(bombUserPosition.y) - parseFloat(position.y), 2));
+              return distance <= this.BOMB_RADIUS;
+            }
+            return false;
+          });
+          if (overlappingUser) {
+            // Replace the overlapping bomb user with a non-overlapping user
+            const nonOverlappingUser = Array.from(this.clientsPosition.keys()).find(
+              userId => !this.bombUserList.includes(userId) && userId !== overlappingUser[0]
+            );
+            client.to(room).emit('bombUsers',this.bombUserList)
+            if (nonOverlappingUser) {
+              return nonOverlappingUser;
+            }
+          }
+        }
+        return bombUserId;
+      });
+
+      this.bombUserList = updatedBombUserList;
+      this.server.to(room).emit('updatedBombUsers', this.bombUserList);
+
+
+
     }
   }
 
@@ -96,8 +131,26 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   bombGameStart(room:string){
     this.gameStartFlag =false
+    const playGameuserList=this.statusService.getPlayGameUserList()
     this.logger.log(`Bomb game started in room ${room}`);
-    this.server.to(room).emit('startBombGame', { isStart: true });
+    this.server.to(room).emit('startBombGame', playGameuserList);
+
+    this.bombUserList=this.statusService.getBombUsers()
+    this.server.to(room).emit('bombUsers',this.bombUserList)
+
+    let remainingTime = this.BOMB_TIME; // 10초 타이머
+    const timerInterval = setInterval(() => {
+      remainingTime -= 1;
+      this.server.to(room).emit('bombTimer', { remainingTime });
+      if (remainingTime <= 0) {
+        this.server.to(room).emit('bombTimer',{ remainingTime });
+        /**
+         *
+         */
+        this.statusService
+        remainingTime = 10; // 타이머를 다시 10초로 설정
+      }
+    }, 1000);
   }
 
 }
