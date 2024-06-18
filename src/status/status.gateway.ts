@@ -14,7 +14,7 @@ import { Socket, Server } from 'socket.io';
 export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
-
+  HITRADIUS = 40;
   private logger: Logger = new Logger('Status-Gateway');
 
   private clientsPosition: Map<string, { room: string, x: string, y: string, isStun: number }> = new Map();
@@ -79,8 +79,9 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     }
 
     const room = clientData.room;
+    const logMessage = `attackPosition [${client.id}] x: ${data.x}, y: ${data.y} in room ${room}`;
+    this.logger.log(logMessage);
     const attackPosition = { x: parseFloat(data.x), y: parseFloat(data.y) };
-    const hitRadius = 5; // 히트박스의 반지름, 필요에 따라 조정하세요.
 
     this.logger.log(`Client ${client.id} attacked position x: ${attackPosition.x}, y: ${attackPosition.y} in room ${room}`);
 
@@ -90,7 +91,12 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       .filter(([_, pos]) => {
         const playerPosition = { x: parseFloat(pos.x), y: parseFloat(pos.y) };
         const distance = Math.sqrt(Math.pow(attackPosition.x - playerPosition.x, 2) + Math.pow(attackPosition.y - playerPosition.y, 2));
-        return distance <= hitRadius;
+        return distance <= this.HITRADIUS;
+      })
+      .filter(([playerId]) => {
+        // Check if the player is not stunned
+        const playerData = this.clientsPosition.get(playerId);
+        return playerData && playerData.isStun !== 1;
       })
       .map(([playerId]) => playerId);
 
@@ -100,14 +106,14 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       if (targetClient) {
         targetClient.emit('attacked', 1);
 
-        // 유저의 isStun을 0.5초간 1로 바꿨다가 다시 0으로 바꾸는 비동기 코드
+        // 유저의 isStun을 1초간 1로 바꿨다가 다시 0으로 바꾸는 비동기 코드
         const clientPosition = this.clientsPosition.get(playerId);
         if (clientPosition) {
           clientPosition.isStun = 1;
           this.clientsPosition.set(playerId, clientPosition);
 
-          // 0.5초 후에 isStun을 0으로 변경
-          await new Promise(resolve => setTimeout(resolve, 500));
+          // 1초 후에 isStun을 0으로 변경
+          await new Promise(resolve => setTimeout(resolve, 1000));
 
           clientPosition.isStun = 0;
           this.clientsPosition.set(playerId, clientPosition);
@@ -116,7 +122,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     });
 
     // 히트 결과를 해당 룸의 모든 클라이언트에게 알림
-    client.to(room).emit('attackedPlayers', hitResults);
+    this.server.to(room).emit('attackedPlayers', hitResults);
 
     // 공격중인 유저를 모두에게 전파(화면에 공격중인것을 표시하기 위해)
     client.to(room).emit('attackPlayer', client.id);
