@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable } from "@nestjs/common";
 
 @Injectable()
 export class StatusBombGameService {
   private playGameUser: Map<string, { x: string; y: string }> = new Map();
   private bombUserList: string[] = [];
   private playUserCount: number;
-  private BOMB_USER_PERCENT:number =0.2;
+  private BOMB_USER_PERCENT: number = 0.2;
 
   setPlayGameUser(playList: Map<string, { room: string; x: string; y: string }>) {
     // 기존 관리되고 있던 유저 초기화
@@ -26,9 +26,9 @@ export class StatusBombGameService {
     return this.bombUserList;
   }
 
-  getNewBombUsers(){
+  getNewBombUsers() {
     this.bombUserList = this.selectRandomBombUsers();
-    return this.bombUserList
+    return this.bombUserList;
   }
 
 
@@ -36,17 +36,25 @@ export class StatusBombGameService {
     return Object.fromEntries(this.playGameUser);
   }
 
-  deleteBombUserInPlayUserList(newBombList:string[]) {
-     newBombList.forEach(userId => {
+  deleteBombUserInPlayUserList(newBombList: string[]) {
+    newBombList.forEach(userId => {
       this.playGameUser.delete(userId);
-    })
+    });
+    this.playUserCount = this.playGameUser.size;
   }
 
-  checkWinner(){
-    if(this.playGameUser.size<=1){
-      return this.getPlayGameUserList()
+  disconnectPlayUser(deleteUserId: string): void {
+    if (this.playGameUser.has(deleteUserId)) {
+      this.playGameUser.delete(deleteUserId);
+      this.playUserCount = this.playGameUser.size;
     }
-    return null
+  }
+
+  checkWinner() {
+    if (this.playUserCount <= 1) {
+      return this.getPlayGameUserList();
+    }
+    return null;
   }
 
   private selectRandomBombUsers(): string[] {
