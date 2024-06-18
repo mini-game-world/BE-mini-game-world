@@ -145,8 +145,10 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       if (remainingTime <= 0) {
         this.server.to(room).emit('bombTimer',{ remainingTime });
         /**
-         *
+         * 1. 폭탄리스트에 포함되어있는 유저 플레이 상태에서 제외
          */
+        this.statusService.deleteBombUserInPlayUserList();
+
         this.statusService
         remainingTime = 10; // 타이머를 다시 10초로 설정
       }

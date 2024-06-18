@@ -44,4 +44,10 @@ export class StatusBombGameService {
   getPlayGameUserList(): { [key: string]: { x:string, y:string} } {
     return Object.fromEntries(this.playGameUser);
   }
+
+  deleteBombUserInPlayUserList() {
+    this.bombUserList.forEach(userId => {
+      this.playGameUser.delete(userId);
+    });
+  }
 }
