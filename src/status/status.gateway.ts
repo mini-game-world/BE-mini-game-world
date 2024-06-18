@@ -15,6 +15,8 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   @WebSocketServer()
   server: Server;
 
+  MIN_PLAYERS_FOR_BOMB_GAME:number = 3;
+
   private logger: Logger = new Logger('Status-Gateway');
 
   private clientsPosition: Map<string, { room: string, x: string, y: string }> = new Map();
@@ -49,6 +51,11 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
     this.logger.log(`Client ${client.id} joined room ${room}`);
     this.logger.log(`Number of connected clients in room ${room}: ${allClientsInRoom.length}`);
+
+    // 방에 n 명 이상 존재시 게임시작 신호를 보내줘야해~
+    if(this.clientsPosition.size>this.MIN_PLAYERS_FOR_BOMB_GAME){
+        this.bombGameStart(room)
+    }
   }
 
   @SubscribeMessage('playerMovement')
@@ -64,29 +71,9 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     }
   }
 
-
   afterInit(server: any): any {
     this.logger.log('Init');
   }
-
-  // @SubscribeMessage('newPlayer')
-  // newPlayer(client: Socket, data: { x: string; y: string }): void {
-  //   client.broadcast.emit('newPlayer', {
-  //     playerId: client.id,
-  //     x: data.x,
-  //     y: data.y
-  //   });
-  //   this.clientsPosition.set(client.id, data);
-
-  //   const allClientsPositions = Array.from(this.clientsPosition.entries())
-  //     .map(([playerId, pos]) => ({ playerId, ...pos }));
-
-  //   client.emit('currentPlayers', allClientsPositions);
-
-  //   console.log(allClientsPositions);
-  //   const size = this.clientsPosition.size;
-  //   this.logger.log(`Number of connected clients: ${size}`);
-  // }
 
   //연결이 되었다면.. 뭔가 행위를 할 수있다 .~!
   handleConnection(client: any, ...args: any[]): any {
@@ -100,4 +87,10 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     this.logger.log(`Number of connected clients: ${size}`);
     client.broadcast.emit('disconnected', client.id);
   }
+
+  bombGameStart(room:string){
+    this.logger.log(`Bomb game started in room ${room}`);
+    this.server.to(room).emit('startBombGame', { isStart: true });
+  }
+
 }
