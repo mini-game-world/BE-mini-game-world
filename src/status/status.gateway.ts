@@ -77,6 +77,9 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
       client.to(room).emit("playerMoved", { playerId: client.id, x: data.x, y: data.y });
 
+      if (this.bombUserList.length === 0) {
+        return; // bombUserList가 비어 있으면 로직을 실행하지 않음
+      }
       let updated = false;
 
       const updatedBombUserList = this.bombUserList.map(bombUserId => {
@@ -169,7 +172,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
           this.gameStartFlag = true;
           clearInterval(timerInterval); // 루프 종료
         }
-        remainingTime = 10; // 타이머를 다시 10초로 설정
+        remainingTime = this.BOMB_TIME; // 타이머를 다시셋팅
       }
     }, 1000);
   }
