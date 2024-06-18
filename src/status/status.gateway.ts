@@ -22,7 +22,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private logger: Logger = new Logger("Status-Gateway");
 
   private MIN_PLAYERS_FOR_BOMB_GAME: number = 3;
-  private BOMB_TIME: number = 10;
+  private BOMB_TIME: number = 30;
   private BOMB_RADIUS: number = 40;
   private gameStartFlag: boolean = true;
 
