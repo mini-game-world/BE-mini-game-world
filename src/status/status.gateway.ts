@@ -103,11 +103,8 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         }
         return bombUserId;
       });
-
       this.bombUserList = updatedBombUserList;
       this.server.to(room).emit('updatedBombUsers', this.bombUserList);
-
-
 
     }
   }
@@ -146,10 +143,17 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         this.server.to(room).emit('bombTimer',{ remainingTime });
         /**
          * 1. 폭탄리스트에 포함되어있는 유저 플레이 상태에서 제외
+         * 2. 남은 유저들 중에서 새로운 폭탄 리스트를 보내줘야함.
          */
-        this.statusService.deleteBombUserInPlayUserList();
-
-        this.statusService
+         this.statusService.deleteBombUserInPlayUserList(this.bombUserList);
+        const newBombUser= this.statusService.getNewBombUsers()
+        this.server.to(room).emit('bombUsers',newBombUser);
+        const checkWinner = this.statusService.checkWinner()
+        if(checkWinner){
+          this.server.to(room).emit('gameWinner',checkWinner);
+          this.gameStartFlag = true
+          clearInterval(timerInterval); // 루프 종료
+        }
         remainingTime = 10; // 타이머를 다시 10초로 설정
       }
     }, 1000);
