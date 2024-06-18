@@ -129,11 +129,14 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   bombGameStart(room: string) {
     this.gameStartFlag = false;
+
+    this.statusService.setPlayGameUser(this.clientsPosition)
+
     const playGameuserList = this.statusService.getPlayGameUserList();
     this.logger.log(`Bomb game started in room ${room}`);
     this.server.to(room).emit("startBombGame", playGameuserList);
 
-    this.bombUserList = this.statusService.getBombUsers();
+    this.bombUserList =  this.statusService.getBombUsers();
     this.server.to(room).emit("bombUsers", this.bombUserList);
 
     let remainingTime = this.BOMB_TIME; // 10초 타이머
