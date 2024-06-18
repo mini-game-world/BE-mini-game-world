@@ -9,16 +9,18 @@ import {
 
 import { Logger } from '@nestjs/common';
 import { Socket, Server } from 'socket.io';
-import { StatusService } from './status.service'
+import { StatusBombGameService } from './status.service'
 
 @WebSocketGateway({ cors: { origin: '*' } })
 export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
-  constructor(private readonly ChatRoomService: StatusService) {}
-  
+  constructor(private readonly statusService: StatusBombGameService) {}
+
   @WebSocketServer()
   server: Server;
 
   private MIN_PLAYERS_FOR_BOMB_GAME:number = 3;
+
+  private gameStartFlag: boolean =true
 
   private logger: Logger = new Logger('Status-Gateway');
 
@@ -56,8 +58,9 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     this.logger.log(`Number of connected clients in room ${room}: ${allClientsInRoom.length}`);
 
     // 방에 n 명 이상 존재시 게임시작 신호를 보내줘야해~
-    if(this.clientsPosition.size>this.MIN_PLAYERS_FOR_BOMB_GAME){
-        this.bombGameStart(room)
+    if(this.clientsPosition.size > this.MIN_PLAYERS_FOR_BOMB_GAME && this.gameStartFlag){
+      this.bombGameStart(room)
+      this.statusService.setPlayGameUser(this.clientsPosition)
     }
   }
 
@@ -92,6 +95,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   bombGameStart(room:string){
+    this.gameStartFlag =false
     this.logger.log(`Bomb game started in room ${room}`);
     this.server.to(room).emit('startBombGame', { isStart: true });
   }
