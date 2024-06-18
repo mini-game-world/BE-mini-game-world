@@ -9,13 +9,16 @@ import {
 
 import { Logger } from '@nestjs/common';
 import { Socket, Server } from 'socket.io';
+import { StatusService } from './status.service'
 
 @WebSocketGateway({ cors: { origin: '*' } })
 export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
+  constructor(private readonly ChatRoomService: StatusService) {}
+  
   @WebSocketServer()
   server: Server;
 
-  MIN_PLAYERS_FOR_BOMB_GAME:number = 3;
+  private MIN_PLAYERS_FOR_BOMB_GAME:number = 3;
 
   private logger: Logger = new Logger('Status-Gateway');
 
