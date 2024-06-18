@@ -76,15 +76,15 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
       client.to(room).emit("playerMoved", { playerId: client.id, x: data.x, y: data.y });
 
-      if (this.bombUserList.length === 0) {
+      if (this.bombUserList) {
         return; // bombUserList가 비어 있으면 로직을 실행하지 않음
       }
 
       const playUserList = this.statusService.getPlayGameUserMap();
       let updated = false;
 
-      // 일시적으로 술래 상태에서 제외된 유저들을 저장하는 Set
-      const temporarilyExcludedUsers = new Set<string>();
+      // 일시적으로 술래 상태에서 제외된 유저들을 저장하는 Map
+      const temporarilyExcludedUsers = new Map<string, NodeJS.Timeout>();
 
       const updatedBombUserList: string[] = [];
 
@@ -92,7 +92,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         const bombUserPosition = this.clientsPosition.get(bombUserId);
         if (bombUserPosition) {
           const overlappingUser = Array.from(this.clientsPosition.entries()).find(([userId, position]) => {
-            if (userId !== bombUserId && position.room === bombUserPosition.room) {
+            if (userId !== bombUserId && position.room === bombUserPosition.room && !temporarilyExcludedUsers.has(userId)) {
               const distance = Math.sqrt(Math.pow(parseFloat(bombUserPosition.x) - parseFloat(position.x), 2) + Math.pow(parseFloat(bombUserPosition.y) - parseFloat(position.y), 2));
               return distance <= this.BOMB_RADIUS;
             }
@@ -100,19 +100,17 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
           });
 
           if (overlappingUser) {
-            updated = true;
             updatedBombUserList.push(overlappingUser[0]);
-
-            // 새롭게 술래가 된 유저를 일정 시간 동안 술래 상태에서 제외
-            temporarilyExcludedUsers.add(overlappingUser[0]);
-            setTimeout(() => {
+            updated = true;
+            // 새롭게 술래가 된 유저를 일정 시간 동안 술래 상태에서 유지
+            const timeout = setTimeout(() => {
               temporarilyExcludedUsers.delete(overlappingUser[0]);
             }, 1000); // 1초 동안 술래 상태를 유지
+
+            temporarilyExcludedUsers.set(overlappingUser[0], timeout);
           } else {
             updatedBombUserList.push(bombUserId);
           }
-        } else {
-          updatedBombUserList.push(bombUserId);
         }
       });
 
