@@ -219,6 +219,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   bombGameStart(room: string) {
     this.gameStartFlag = false;
+    this.server.emit("playingGame", [1, 0, 0]);
 
     // Filter clients based on the room
     const clientsInRoom = new Map<string, { room: string, x: string, y: string }>();
@@ -264,6 +265,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
           this.logger.debug(`checkWinner ${checkWinner}`)
           this.server.to(room).emit("gameWinner", checkWinner);
           this.gameStartFlag = true;
+          this.server.emit("playingGame", [0, 0, 0]);
           clearInterval(timerInterval); // 루프 종료
         }
         remainingTime = this.BOMB_TIME; // 타이머를 다시셋
