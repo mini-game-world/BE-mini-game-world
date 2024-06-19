@@ -2,18 +2,15 @@ import { Injectable } from "@nestjs/common";
 
 @Injectable()
 export class StatusBombGameService {
-  private playGameUser: Map<string, { room: string, x: string; y: string }> = new Map();
+  private playGameUser: Set<string> = new Set();
   private bombUserList: string[] = [];
   private playUserCount: number;
   private BOMB_USER_PERCENT: number = 0.2;
 
-  setPlayGameUser(playList: Map<string, { room: string; x: string; y: string }>) {
+  setPlayGameUser(playList: Set<string>) {
     // 기존 관리되고 있던 유저 초기화
-    this.playGameUser.clear();
     this.bombUserList = [];
-    playList.forEach((value, key) => {
-      this.playGameUser.set(key, { room: value.room, x: value.x, y: value.y });
-    });
+    this.playGameUser = playList;
     this.playUserCount = this.playGameUser.size;
 
     // 랜덤으로 폭탄 유저를 선정
@@ -22,21 +19,21 @@ export class StatusBombGameService {
     return this.playGameUser;
   }
 
-  getBombUsers() {
+  getBombUsers(): string[] {
     return this.bombUserList;
   }
 
-  getNewBombUsers() {
+  getNewBombUsers(): string[] {
     this.bombUserList = this.selectRandomBombUsers();
     return this.bombUserList;
   }
 
 
-  getPlayGameUserList(): { [key: string]: { x: string; y: string } } {
-    return Object.fromEntries(this.playGameUser);
+  getPlayGameUserList(): string[] {
+    return Array.from(this.playGameUser);
   }
 
-  getPlayGameUserMap() {
+  getPlayGameUserSet(): Set<string> {
     return this.playGameUser;
   }
 
@@ -54,7 +51,7 @@ export class StatusBombGameService {
     }
   }
 
-  checkWinner() {
+  checkWinner(): string[] {
     if (this.playUserCount <= 1) {
       return this.getPlayGameUserList();
     }
@@ -63,7 +60,7 @@ export class StatusBombGameService {
 
   private selectRandomBombUsers(): string[] {
     const bombUserCount = Math.max(1, Math.floor(this.playUserCount * this.BOMB_USER_PERCENT));
-    const userIds = Array.from(this.playGameUser.keys());
+    const userIds = Array.from(this.playGameUser);
 
     // Fisher-Yates 셔플 알고리즘으로 배열을 무작위로 섞음
     for (let i = userIds.length - 1; i > 0; i--) {
