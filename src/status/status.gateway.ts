@@ -26,8 +26,11 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private BOMB_RADIUS: number = 40;
   private gameStartFlag: boolean = true;
 
-  private bombUserList: string[];
+  private bombUserList: string[] = [];
   private clientsPosition: Map<string, { room: string, x: string, y: string }> = new Map();
+  // 일시적으로 술래 상태에서 제외된 유저들을 저장하는 Map
+  private temporarilyExcludedUsers = new Map<string, NodeJS.Timeout>();
+  private playGameuserList: Map<string, { room: string, x: string; y: string }> = new Map();
 
   @SubscribeMessage("joinRoom")
   handleJoinRoom(client: Socket, data: { room: string, x: string, y: string }): void {
@@ -76,15 +79,13 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
       client.to(room).emit("playerMoved", { playerId: client.id, x: data.x, y: data.y });
 
-      if (this.bombUserList) {
-        return; // bombUserList가 비어 있으면 로직을 실행하지 않음
+      // bombUserList가 비어 있으면 로직을 실행하지 않음
+      if (this.bombUserList.length === 0) {
+        return;
       }
 
-      const playUserList = this.statusService.getPlayGameUserMap();
+      // const playUserList = this.statusService.getPlayGameUserMap();
       let updated = false;
-
-      // 일시적으로 술래 상태에서 제외된 유저들을 저장하는 Map
-      const temporarilyExcludedUsers = new Map<string, NodeJS.Timeout>();
 
       const updatedBombUserList: string[] = [];
 
@@ -92,7 +93,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         const bombUserPosition = this.clientsPosition.get(bombUserId);
         if (bombUserPosition) {
           const overlappingUser = Array.from(this.clientsPosition.entries()).find(([userId, position]) => {
-            if (userId !== bombUserId && position.room === bombUserPosition.room && !temporarilyExcludedUsers.has(userId)) {
+            if (userId !== bombUserId && position.room === bombUserPosition.room && !this.temporarilyExcludedUsers.has(userId)) {
               const distance = Math.sqrt(Math.pow(parseFloat(bombUserPosition.x) - parseFloat(position.x), 2) + Math.pow(parseFloat(bombUserPosition.y) - parseFloat(position.y), 2));
               return distance <= this.BOMB_RADIUS;
             }
@@ -104,10 +105,12 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
             updated = true;
             // 새롭게 술래가 된 유저를 일정 시간 동안 술래 상태에서 유지
             const timeout = setTimeout(() => {
-              temporarilyExcludedUsers.delete(overlappingUser[0]);
+              this.temporarilyExcludedUsers.delete(overlappingUser[0]);
+              this.temporarilyExcludedUsers.delete(bombUserId);
             }, 1000); // 1초 동안 술래 상태를 유지
 
-            temporarilyExcludedUsers.set(overlappingUser[0], timeout);
+            this.temporarilyExcludedUsers.set(overlappingUser[0], timeout);
+            this.temporarilyExcludedUsers.set(bombUserId, timeout);
           } else {
             updatedBombUserList.push(bombUserId);
           }
@@ -146,17 +149,25 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   bombGameStart(room: string) {
     this.gameStartFlag = false;
 
-    this.statusService.setPlayGameUser(this.clientsPosition)
+    // Filter clients based on the room
+    const clientsInRoom = new Map<string, { room: string, x: string, y: string }>();
+    for (const [client, position] of this.clientsPosition.entries()) {
+      if (position.room === room) {
+        clientsInRoom.set(client, position);
+      }
+    }
+
+    this.statusService.setPlayGameUser(clientsInRoom);
 
 
-    const playGameuserList = this.statusService.getPlayGameUserList();
-    this.logger.log(`Bomb game started in room ${room}  and usrlist ${playGameuserList}`);
-    this.server.to(room).emit("startBombGame", playGameuserList);
+    this.playGameuserList = this.statusService.getPlayGameUserMap();
+    this.logger.log(`Bomb game started in room ${room}  and usrlist ${this.statusService.getPlayGameUserList()}`);
+    this.server.to(room).emit("startBombGame", this.statusService.getPlayGameUserList());
 
-    this.bombUserList =  this.statusService.getBombUsers();
+    this.bombUserList = this.statusService.getBombUsers();
     this.server.to(room).emit("bombUsers", this.bombUserList);
 
-    let remainingTime = this.BOMB_TIME; // 10초 타이머
+    let remainingTime = this.BOMB_TIME; // 타이머
     const timerInterval = setInterval(() => {
       remainingTime -= 1;
       this.server.to(room).emit("bombTimer", { remainingTime });
@@ -165,14 +176,16 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
       if (remainingTime <= 0) {
         this.server.to(room).emit("bombTimer", { remainingTime });
+        this.server.to(room).emit("deadUsers", this.bombUserList); // 죽은 유저들 보내주기
         /**
          * 1. 폭탄리스트에 포함되어있는 유저 플레이 상태에서 제외
          * 2. 남은 유저들 중에서 새로운 폭탄 리스트를 보내줘야함.
          */
         this.statusService.deleteBombUserInPlayUserList(this.bombUserList);
+        this.playGameuserList = this.statusService.getPlayGameUserMap();
         const newBombUser = this.statusService.getNewBombUsers();
 
-        this.logger.debug(`newBombUser ${newBombUser}`)
+        this.logger.debug(`newBombUser ${newBombUser}`);
         this.server.to(room).emit("bombUsers", newBombUser);
 
         const checkWinner = this.statusService.checkWinner();

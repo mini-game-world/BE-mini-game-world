@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 
 @Injectable()
 export class StatusBombGameService {
-  private playGameUser: Map<string, { x: string; y: string }> = new Map();
+  private playGameUser: Map<string, { room: string, x: string; y: string }> = new Map();
   private bombUserList: string[] = [];
   private playUserCount: number;
   private BOMB_USER_PERCENT: number = 0.2;
@@ -12,7 +12,7 @@ export class StatusBombGameService {
     this.playGameUser.clear();
     this.bombUserList = [];
     playList.forEach((value, key) => {
-      this.playGameUser.set(key, { x: value.x, y: value.y });
+      this.playGameUser.set(key, { room: value.room, x: value.x, y: value.y });
     });
     this.playUserCount = this.playGameUser.size;
 
