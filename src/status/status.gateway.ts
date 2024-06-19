@@ -25,17 +25,15 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   private MIN_PLAYERS_FOR_BOMB_GAME: number = 3;
   private BOMB_TIME: number = 30;
-  private BOMB_RADIUS: number = 40;
   private gameStartFlag: boolean = true;
   private HITRADIUS = 40;
 
-  private TAG_HOLD_DURATION_MS: number = 1500;
   private TIMER_INTERVAL_MS: number = 1000;
   private STUN_DURATION_MS: number = 1000;
   private PLAYING_ROOM: number[] = [0, 0, 0];
 
-
   private bombUserList: string[] = [];
+
   private clientsPosition: Map<string, { room: string, x: string, y: string, isStun: number }> = new Map();
   // 일시적으로 술래 상태에서 제외된 유저들을 저장하는 Map
   private temporarilyExcludedUsers = new Map<string, NodeJS.Timeout>();
@@ -94,52 +92,16 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
 
       this.clientsPosition.set(client.id, { room, x: data.x, y: data.y, isStun: 0 });
-
+      this.statusService.setBombGamePlayerRoomPosition(client.id,{ room, x: data.x, y: data.y, isStun: 0 })
 
       client.to(room).emit("playerMoved", { playerId: client.id, x: data.x, y: data.y });
 
       // bombUserList가 비어 있으면 로직을 실행하지 않음
-      if (this.bombUserList.length === 0) {
+      if (this.statusService.getBombUserList().length === 0) {
         return;
       }
-
-      // const playUserList = this.statusService.getPlayGameUserMap();
-      let updated = false;
-
-      const updatedBombUserList: string[] = [];
-
-      this.bombUserList.forEach(bombUserId => {
-        const bombUserPosition = this.clientsPosition.get(bombUserId);
-        if (bombUserPosition) {
-          const overlappingUser = Array.from(this.clientsPosition.entries()).find(([userId, position]) => {
-            if (userId !== bombUserId && this.playGameuserList.has(userId) && position.room === bombUserPosition.room && !this.temporarilyExcludedUsers.has(userId)) {
-              const distance = Math.sqrt(Math.pow(parseFloat(bombUserPosition.x) - parseFloat(position.x), 2) + Math.pow(parseFloat(bombUserPosition.y) - parseFloat(position.y), 2));
-              return distance <= this.BOMB_RADIUS;
-            }
-            return false;
-          });
-
-          if (overlappingUser) {
-            updatedBombUserList.push(overlappingUser[0]);
-            updated = true;
-            // 새롭게 술래가 된 유저를 일정 시간 동안 술래 상태에서 유지
-            const timeout = setTimeout(() => {
-              this.temporarilyExcludedUsers.delete(overlappingUser[0]);
-              this.temporarilyExcludedUsers.delete(bombUserId);
-            }, this.TAG_HOLD_DURATION_MS); // 술래 상태를 유지
-
-            this.temporarilyExcludedUsers.set(overlappingUser[0], timeout);
-            this.temporarilyExcludedUsers.set(bombUserId, timeout);
-          } else {
-            updatedBombUserList.push(bombUserId);
-          }
-        }
-      });
-
-      if (updated) {
-        this.bombUserList = updatedBombUserList;
-        this.logger.debug(`Updated bombUserList: ${this.bombUserList}`);
-        this.server.to(room).emit("bombUsers", this.bombUserList);
+      if (this.statusService.checkOverlappingUser()) {
+        this.server.to(room).emit("bombUsers", this.statusService.getBombUserList());
       }
     }
   }
@@ -253,7 +215,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     this.logger.log(`Bomb game started in room ${room}  and usrlist ${this.statusService.getPlayGameUserList()}`);
     this.server.to(room).emit("startBombGame", this.statusService.getPlayGameUserList());
 
-    this.bombUserList = this.statusService.getBombUsers();
+    this.bombUserList = this.statusService.getBombUserList();
     this.server.to(room).emit("bombUsers", this.bombUserList);
 
     let remainingTime = this.BOMB_TIME; // 타이머
@@ -282,6 +244,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
           this.logger.debug(`checkWinner ${JSON.stringify(checkWinner)}`)
           this.server.to(room).emit("gameWinner", checkWinner);
           this.gameStartFlag = true;
+          this.bombUserList=[];
           this.PLAYING_ROOM[0] = 0
           this.server.emit("playingGame", this.PLAYING_ROOM);
           clearInterval(timerInterval); // 루프 종료
