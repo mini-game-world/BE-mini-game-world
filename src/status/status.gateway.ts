@@ -19,14 +19,18 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   @WebSocketServer()
   server: Server;
 
-
   private logger: Logger = new Logger("Status-Gateway");
 
   private MIN_PLAYERS_FOR_BOMB_GAME: number = 3;
   private BOMB_TIME: number = 30;
   private BOMB_RADIUS: number = 40;
   private gameStartFlag: boolean = true;
-  HITRADIUS = 40;
+  private HITRADIUS = 40;
+
+  private TAG_HOLD_DURATION_MS: number = 1500;
+  private TIMER_INTERVAL_MS: number = 1000;
+  private STUN_DURATION_MS: number = 1000;
+
 
   private bombUserList: string[] = [];
   private clientsPosition: Map<string, { room: string, x: string, y: string, isStun: number }> = new Map();
@@ -113,7 +117,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
             const timeout = setTimeout(() => {
               this.temporarilyExcludedUsers.delete(overlappingUser[0]);
               this.temporarilyExcludedUsers.delete(bombUserId);
-            }, 1000); // 1초 동안 술래 상태를 유지
+            }, this.TAG_HOLD_DURATION_MS); // 술래 상태를 유지
 
             this.temporarilyExcludedUsers.set(overlappingUser[0], timeout);
             this.temporarilyExcludedUsers.set(bombUserId, timeout);
@@ -180,7 +184,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
           this.clientsPosition.set(playerId, clientPosition);
 
           // 1초 후에 isStun을 0으로 변경
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, this.STUN_DURATION_MS));
 
           clientPosition.isStun = 0;
           this.clientsPosition.set(playerId, clientPosition);
@@ -270,7 +274,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         }
         remainingTime = this.BOMB_TIME; // 타이머를 다시셋
       }
-    }, 1000);
+    }, this.TIMER_INTERVAL_MS);
   }
 
 }
