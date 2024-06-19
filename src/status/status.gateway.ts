@@ -11,6 +11,8 @@ import { Logger } from "@nestjs/common";
 import { Server, Socket } from "socket.io";
 import { StatusBombGameService } from "./status.service";
 
+import { playerJoinRoomDTO,playerMovementDTO,playerAttackPositionDTO } from './DTO/status.DTO'
+
 @WebSocketGateway({ cors: { origin: "*" } })
 export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   constructor(private readonly statusService: StatusBombGameService) {
@@ -41,7 +43,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
 
   @SubscribeMessage("joinRoom")
-  handleJoinRoom(client: Socket, data: { room: string, x: string, y: string }): void {
+  handleJoinRoom(client: Socket, data: playerJoinRoomDTO): void {
     // 클라이언트가 기존에 속해있던 방에서 떠납니다.
     const clientData = this.clientsPosition.get(client.id);
     if (clientData) {
@@ -85,7 +87,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
 
   @SubscribeMessage("playerMovement")
-  playerPosition(client: Socket, data: { x: string; y: string }): void {
+  playerPosition(client: Socket, data: playerMovementDTO): void {
     const clientData = this.clientsPosition.get(client.id);
     if (clientData) {
       const room = clientData.room;
@@ -143,7 +145,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   @SubscribeMessage('attackPosition')
-  handleAttackPosition(client: Socket, data: { x: string; y: string }): void {
+  handleAttackPosition(client: Socket, data:playerAttackPositionDTO): void {
     const clientData = this.clientsPosition.get(client.id);
     if (!clientData) {
       this.logger.warn(`Client ${client.id} sent attack position but is not in any room`);
@@ -277,7 +279,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
         const checkWinner = this.statusService.checkWinner();
         if (checkWinner) {
-          this.logger.debug(`checkWinner ${checkWinner}`)
+          this.logger.debug(`checkWinner ${JSON.stringify(checkWinner)}`)
           this.server.to(room).emit("gameWinner", checkWinner);
           this.gameStartFlag = true;
           this.PLAYING_ROOM[0] = 0
