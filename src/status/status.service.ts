@@ -1,16 +1,24 @@
 import { Injectable, Logger } from "@nestjs/common";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 
 @Injectable()
 export class StatusBombGameService {
+  constructor(private eventEmitter: EventEmitter2) {}
+  // bomb 게임방에 입장유저
+  private bombGameRoomPosition: Map<string, { room: string, x: string, y: string, isStun: number }> = new Map();
+  // bomb 게임 플레이 유저
   private playGameUser: Set<string> = new Set();
+  // 폭탄들고 있는 유저
   private bombUserList: string[] = [];
+  // 일시적 무적유저
+  private temporarilyExcludedUsers = new Map<string, NodeJS.Timeout>();
   private playUserCount: number;
+
   private BOMB_USER_PERCENT: number = 0.2;
+  private BOMB_TIME: number = 30;
   private BOMB_RADIUS: number = 40;
   private TAG_HOLD_DURATION_MS: number = 1500;
-
-  private bombGameRoomPosition: Map<string, { room: string, x: string, y: string, isStun: number }> = new Map();
-  private temporarilyExcludedUsers = new Map<string, NodeJS.Timeout>();
+  private TIMER_INTERVAL_MS: number = 1000;
 
   private logger: Logger = new Logger("BombGameService");
 
@@ -29,12 +37,12 @@ export class StatusBombGameService {
 
     return this.playGameUser;
   }
-  
+
   getNewBombUsers(): string[] {
     this.bombUserList = this.selectRandomBombUsers();
     return this.bombUserList;
   }
-  
+
   getPlayGameUserList(): string[] {
     return Array.from(this.playGameUser);
   }
@@ -43,8 +51,8 @@ export class StatusBombGameService {
     return this.playGameUser;
   }
 
-  deleteBombUserInPlayUserList(newBombList: string[]) {
-    newBombList.forEach(userId => {
+  deleteBombUserInPlayUserList(bombList: string[]) {
+    bombList.forEach(userId => {
       this.playGameUser.delete(userId);
     });
     this.playUserCount = this.playGameUser.size;
@@ -98,6 +106,50 @@ export class StatusBombGameService {
     this.bombUserList=updatedBombUserList
     this.logger.debug(`Updated bombUserList: ${this.bombUserList}`);
     return updated
+  }
+
+
+  startBombGameWithTimer(room: string): void {
+    const clientsInRoom: Set<string> = new Set();
+    for (const [client, position] of this.bombGameRoomPosition.entries()) {
+      if (position.room === room) {
+        clientsInRoom.add(client);
+      }
+    }
+    //게임 시작유저 + 폭탄유저 설정
+    this.setPlayGameUser(clientsInRoom);
+
+    this.logger.log(`Bomb game started in room ${room} and usrlist ${this.getPlayGameUserList()}`);
+
+    this.eventEmitter.emit('bombGame.start', room, this.getPlayGameUserList(), this.getBombUserList());
+
+    let remainingTime = this.BOMB_TIME;
+    const timerInterval = setInterval(() => {
+      remainingTime -= 1;
+      this.eventEmitter.emit('bombGame.timer', room, remainingTime);
+
+      this.logger.debug(`bombTimer ${remainingTime}`);
+
+      if (remainingTime <= 0) {
+        this.eventEmitter.emit('bombGame.timer', room, remainingTime);
+        this.eventEmitter.emit('bombGame.deadUsers', room, this.bombUserList);
+
+        this.deleteBombUserInPlayUserList(this.bombUserList);
+        this.playGameUser =this.getPlayGameUserSet();
+        this.bombUserList = this.getNewBombUsers();
+
+        this.logger.debug(`newBombUser ${this.bombUserList}`);
+        this.eventEmitter.emit('bombGame.newBombUsers', room, this.bombUserList);
+
+        const checkWinner = this.checkWinner();
+        if (checkWinner) {
+          this.logger.debug(`checkWinner ${JSON.stringify(checkWinner)}`);
+          this.eventEmitter.emit('bombGame.winner', room, checkWinner);
+          clearInterval(timerInterval);
+        }
+        remainingTime = this.BOMB_TIME;
+      }
+    }, this.TIMER_INTERVAL_MS);
   }
 
 

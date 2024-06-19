@@ -10,7 +10,7 @@ import {
 import { Logger } from "@nestjs/common";
 import { Server, Socket } from "socket.io";
 import { StatusBombGameService } from "./status.service";
-
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { playerJoinRoomDTO,playerMovementDTO,playerAttackPositionDTO } from './DTO/status.DTO'
 
 @WebSocketGateway({ cors: { origin: "*" } })
@@ -24,21 +24,13 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private logger: Logger = new Logger("Status-Gateway");
 
   private MIN_PLAYERS_FOR_BOMB_GAME: number = 3;
-  private BOMB_TIME: number = 30;
-  private gameStartFlag: boolean = true;
   private HITRADIUS = 40;
 
-  private TIMER_INTERVAL_MS: number = 1000;
   private STUN_DURATION_MS: number = 1000;
   private PLAYING_ROOM: number[] = [0, 0, 0];
-
-  private bombUserList: string[] = [];
+  private bombGameStartFlag =true
 
   private clientsPosition: Map<string, { room: string, x: string, y: string, isStun: number }> = new Map();
-  // 일시적으로 술래 상태에서 제외된 유저들을 저장하는 Map
-  private temporarilyExcludedUsers = new Map<string, NodeJS.Timeout>();
-  private playGameuserList: Set<string> = new Set();
-
 
   @SubscribeMessage("joinRoom")
   handleJoinRoom(client: Socket, data: playerJoinRoomDTO): void {
@@ -72,10 +64,10 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     this.logger.log(`Number of connected clients in room ${room}: ${allClientsInRoom.length}`);
 
     // 방에 n 명 이상 존재시 게임시작 신호를 보내줘야해~
-    if (this.clientsPosition.size > this.MIN_PLAYERS_FOR_BOMB_GAME && this.gameStartFlag) {
+    if (this.clientsPosition.size > this.MIN_PLAYERS_FOR_BOMB_GAME && this.bombGameStartFlag) {
       setTimeout(() => {
         // 다시 조건을 체크
-        if (!(this.clientsPosition.size > this.MIN_PLAYERS_FOR_BOMB_GAME && this.gameStartFlag)) {
+        if (!(this.clientsPosition.size > this.MIN_PLAYERS_FOR_BOMB_GAME && this.bombGameStartFlag)) {
           return; // 조건이 만족되지 않으면 return
         }
         this.bombGameStart(room); // 조건이 만족되면 게임 시작
@@ -88,9 +80,11 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   playerPosition(client: Socket, data: playerMovementDTO): void {
     const clientData = this.clientsPosition.get(client.id);
     if (clientData) {
-      const room = clientData.room;
-
-
+      const room = clientData.room
+      
+      /**
+       * todo : room 종류에 따라서 포지션 업데이트를 해야함
+       */
       this.clientsPosition.set(client.id, { room, x: data.x, y: data.y, isStun: 0 });
       this.statusService.setBombGamePlayerRoomPosition(client.id,{ room, x: data.x, y: data.y, isStun: 0 })
 
@@ -193,65 +187,38 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   bombGameStart(room: string) {
-
-    this.gameStartFlag = false;
-    this.PLAYING_ROOM[0] = 1
+    this.PLAYING_ROOM[0] = 1;
+    this.bombGameStartFlag = false;
     this.server.emit("playingGame", this.PLAYING_ROOM);
-
-    // Initialize an array to store rooms of clients in the specified room
-    const clientsInRoom: Set<string> = new Set();
-
-    // Filter clients based on the room
-    for (const [client, position] of this.clientsPosition.entries()) {
-      if (position.room === room) {
-        clientsInRoom.add(client);
-      }
-    }
-
-    this.statusService.setPlayGameUser(clientsInRoom);
-
-
-    this.playGameuserList = this.statusService.getPlayGameUserSet();
-    this.logger.log(`Bomb game started in room ${room}  and usrlist ${this.statusService.getPlayGameUserList()}`);
-    this.server.to(room).emit("startBombGame", this.statusService.getPlayGameUserList());
-
-    this.bombUserList = this.statusService.getBombUserList();
-    this.server.to(room).emit("bombUsers", this.bombUserList);
-
-    let remainingTime = this.BOMB_TIME; // 타이머
-    const timerInterval = setInterval(() => {
-      remainingTime -= 1;
-      this.server.to(room).emit("bombTimer", { remainingTime });
-
-      this.logger.debug(`bombTimer ${remainingTime}`)
-
-      if (remainingTime <= 0) {
-        this.server.to(room).emit("bombTimer", { remainingTime });
-        this.server.to(room).emit("deadUsers", this.bombUserList); // 죽은 유저들 보내주기
-        /**
-         * 1. 폭탄리스트에 포함되어있는 유저 플레이 상태에서 제외
-         * 2. 남은 유저들 중에서 새로운 폭탄 리스트를 보내줘야함.
-         */
-        this.statusService.deleteBombUserInPlayUserList(this.bombUserList);
-        this.playGameuserList = this.statusService.getPlayGameUserSet();
-        this.bombUserList = this.statusService.getNewBombUsers();
-
-        this.logger.debug(`newBombUser ${this.bombUserList}`);
-        this.server.to(room).emit("bombUsers", this.bombUserList);
-
-        const checkWinner = this.statusService.checkWinner();
-        if (checkWinner) {
-          this.logger.debug(`checkWinner ${JSON.stringify(checkWinner)}`)
-          this.server.to(room).emit("gameWinner", checkWinner);
-          this.gameStartFlag = true;
-          this.bombUserList=[];
-          this.PLAYING_ROOM[0] = 0
-          this.server.emit("playingGame", this.PLAYING_ROOM);
-          clearInterval(timerInterval); // 루프 종료
-        }
-        remainingTime = this.BOMB_TIME; // 타이머를 다시셋
-      }
-    }, this.TIMER_INTERVAL_MS);
+    this.statusService.startBombGameWithTimer(room);
   }
 
+  @OnEvent('bombGame.start')
+  handleBombGameStart(room: string, playGameUserList: string[], bombUserList: string[]) {
+    this.server.to(room).emit("startBombGame", playGameUserList);
+    this.server.to(room).emit("bombUsers", bombUserList);
+  }
+
+  @OnEvent('bombGame.timer')
+  handleBombGameTimer(room: string, remainingTime: number) {
+    this.server.to(room).emit("bombTimer", { remainingTime });
+  }
+
+  @OnEvent('bombGame.deadUsers')
+  handleBombGameDeadUsers(room: string, bombUserList: string[]) {
+    this.server.to(room).emit("deadUsers", bombUserList);
+  }
+
+  @OnEvent('bombGame.newBombUsers')
+  handleBombGameNewBombUsers(room: string, bombUserList: string[]) {
+    this.server.to(room).emit("bombUsers", bombUserList);
+  }
+
+  @OnEvent('bombGame.winner')
+  handleBombGameWinner(room: string, winner: string[]) {
+    this.server.to(room).emit("gameWinner", winner);
+    this.bombGameStartFlag=true
+    this.PLAYING_ROOM[0] = 0;
+    this.server.emit("playingGame", this.PLAYING_ROOM);
+  }
 }
