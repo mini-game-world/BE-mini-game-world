@@ -231,8 +231,6 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   bombGameStart(room: string) {
 
     this.gameStartFlag = false;
-    this.PLAYING_ROOM[0] = 1
-    this.server.emit("playingGame", this.PLAYING_ROOM);
 
     // Initialize an array to store rooms of clients in the specified room
     const clientsInRoom: Set<string> = new Set();
@@ -250,6 +248,8 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     this.playGameuserList = this.statusService.getPlayGameUserSet();
     this.logger.log(`Bomb game started in room ${room}  and usrlist ${this.statusService.getPlayGameUserList()}`);
     this.server.to(room).emit("startBombGame", this.statusService.getPlayGameUserList());
+    this.PLAYING_ROOM[0] = 1
+    this.server.emit("playingGame", this.PLAYING_ROOM);
 
     this.bombUserList = this.statusService.getBombUsers();
     this.server.to(room).emit("bombUsers", this.bombUserList);
