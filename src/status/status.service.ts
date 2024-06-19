@@ -108,10 +108,10 @@ export class StatusBombGameService {
     return updated
   }
 
-
   startBombGameWithTimer(room: string): void {
     const clientsInRoom: Set<string> = new Set();
     for (const [client, position] of this.bombGameRoomPosition.entries()) {
+      console.log(position.room,'===========',room)
       if (position.room === room) {
         clientsInRoom.add(client);
       }
@@ -119,7 +119,7 @@ export class StatusBombGameService {
     //게임 시작유저 + 폭탄유저 설정
     this.setPlayGameUser(clientsInRoom);
 
-    this.logger.log(`Bomb game started in room ${room} and usrlist ${this.getPlayGameUserList()}`);
+    this.logger.log(`Bomb game started in room ${room} and userlist ${this.getPlayGameUserList()}`);
 
     this.eventEmitter.emit('bombGame.start', room, this.getPlayGameUserList(), this.getBombUserList());
 
@@ -136,22 +136,24 @@ export class StatusBombGameService {
 
         this.deleteBombUserInPlayUserList(this.bombUserList);
         this.playGameUser =this.getPlayGameUserSet();
-        this.bombUserList = this.getNewBombUsers();
-
-        this.logger.debug(`newBombUser ${this.bombUserList}`);
-        this.eventEmitter.emit('bombGame.newBombUsers', room, this.bombUserList);
 
         const checkWinner = this.checkWinner();
         if (checkWinner) {
           this.logger.debug(`checkWinner ${JSON.stringify(checkWinner)}`);
           this.eventEmitter.emit('bombGame.winner', room, checkWinner);
           clearInterval(timerInterval);
+          return;
         }
+
+        this.bombUserList = this.getNewBombUsers();
+        
+        this.logger.debug(`newBombUser ${this.bombUserList}`);
+        this.eventEmitter.emit('bombGame.newBombUsers', room, this.bombUserList);
+
         remainingTime = this.BOMB_TIME;
       }
     }, this.TIMER_INTERVAL_MS);
   }
-
 
   getBombUserList():string[]{
       return this.bombUserList;

@@ -47,13 +47,13 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     const room = data.room;
     client.join(room);
     this.clientsPosition.set(client.id, { room, x: data.x, y: data.y, isStun: 0 });
-
+    this.statusService.setBombGamePlayerRoomPosition(client.id,{ room, x: data.x, y: data.y, isStun: 0 })
+  
     client.to(room).emit("newPlayer", {
       playerId: client.id,
       x: data.x,
       y: data.y
     });
-
     const allClientsInRoom = Array.from(this.clientsPosition.entries())
       .filter(([_, pos]) => pos.room === room)
       .map(([playerId, pos]) => ({ playerId, x: pos.x, y: pos.y }));
@@ -81,7 +81,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     const clientData = this.clientsPosition.get(client.id);
     if (clientData) {
       const room = clientData.room
-      
+
       /**
        * todo : room 종류에 따라서 포지션 업데이트를 해야함
        */
