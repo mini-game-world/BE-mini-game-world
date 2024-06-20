@@ -239,6 +239,9 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 }
 
+/**
+ * test
+ */
 class RandomNumberGenerator {
   private numbers: number[];
 
