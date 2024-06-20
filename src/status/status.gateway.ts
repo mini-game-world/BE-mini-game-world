@@ -24,7 +24,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private logger: Logger = new Logger("Status-Gateway");
 
   private MIN_PLAYERS_FOR_BOMB_GAME: number = 3;
-  private BOMB_TIME: number = 30;
+  private BOMB_TIME: number = 10;
   private BOMB_RADIUS: number = 40;
   private gameStartFlag: boolean = true;
   private HITRADIUS = 40;
@@ -100,6 +100,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
 
       client.to(room).emit("playerMoved", { playerId: client.id, x: data.x, y: data.y });
+      // this.logger.log(`player : ${client.id}, x : ${data.x}, y : ${data.y}`);
 
       // bombUserList가 비어 있으면 로직을 실행하지 않음
       if (this.bombUserList.size === 0) {
@@ -239,6 +240,8 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   //연결이 되었다면.. 뭔가 행위를 할 수있다 .~!
   handleConnection(client: any, ...args: any[]): any {
     this.logger.log(`Client connected: ${client.id}`);
+    const randomNumber = Math.floor(Math.random() * (30)) + 1
+    client.emit("playerNum", randomNumber);
   }
 
   handleDisconnect(client: any): any {
