@@ -50,6 +50,9 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     client.join(room);
     this.clientsPosition.set(client.id, { room, x: data.x, y: data.y, isStun: 0 });
     this.statusService.setBombGamePlayerRoomPosition(client.id, { room, x: data.x, y: data.y, isStun: 0 });
+    const randomNum = Math.floor((Math.random() * 5)) + 1;
+    this.server.to(data.room).emit("playerNum", randomNum);
+    this.server.to(data.room).emit("nickname", { [client.id] : "bestplayer" });
 
     client.to(room).emit("newPlayer", {
       playerId: client.id,
@@ -100,7 +103,6 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       if (this.statusService.checkIsPlayer(client.id)) {
         return;
       }
-
       this.statusService.checkOverlappingUser(client.id, data.x, data.y);
     }
   }
@@ -200,6 +202,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   @OnEvent("bombGame.start")
   handleBombGameStart(room: string, playGameUserList: string[], bombUserList: string[]) {
+    this.logger.log(`나 지금 클라한테 붐유저 보내고있어 ${bombUserList}`);
     this.server.to(room).emit("startBombGame", playGameUserList);
     this.server.to(room).emit("bombUsers", bombUserList);
   }
@@ -216,6 +219,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   @OnEvent("bombGame.newBombUsers")
   handleBombGameNewBombUsers(room: string, bombUserList: string[]) {
+    this.logger.log(`바뀐 폭탄멤버는 ${bombUserList}`);
     this.server.to(room).emit("bombUsers", bombUserList);
   }
 
