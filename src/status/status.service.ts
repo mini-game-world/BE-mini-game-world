@@ -32,6 +32,15 @@ export class StatusBombGameService {
     this.bombGameRoomPosition.set(playId, { room: room, x: x, y: y, isStun: isStun });
   }
 
+  removeBombGamePlayerRoomPosition(playId) {
+    if (this.bombGameRoomPosition.has(playId)) {
+      this.bombGameRoomPosition.delete(playId);
+      console.log(`Player ${playId} position removed.`);
+    } else {
+      console.log(`Player ${playId} not found.`);
+    }
+  }
+
   getBombGamePalyerMap() {
     return this.bombGameRoomPosition
   }
@@ -155,7 +164,6 @@ export class StatusBombGameService {
         if (checkWinner) {
           this.logger.debug(`checkWinner ${JSON.stringify(checkWinner)}`);
           this.eventEmitter.emit("bombGame.winner", this.ROOM_NUMBER, checkWinner);
-          this.bombGameRoomPosition.clear();
           this.deadPlayers = [];
           clearInterval(timerInterval);
           return;

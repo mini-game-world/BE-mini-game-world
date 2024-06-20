@@ -45,6 +45,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       const oldRoom = clientData.room;
       client.leave(oldRoom);
       client.to(oldRoom).emit("playerLeft", { playerId: client.id });
+      if (oldRoom === '0') this.statusService.removeBombGamePlayerRoomPosition(client.id);
       this.logger.log(`Client ${client.id} left room ${oldRoom}`);
     }
 
@@ -180,6 +181,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
     const size = this.clientsPosition.size;
     client.broadcast.emit("disconnected", client.id);
+    this.statusService.removeBombGamePlayerRoomPosition(client.id);
 
     this.logger.log(`Client disconnected: ${client.id}`);
     this.logger.log(`Number of connected clients: ${size}`);
