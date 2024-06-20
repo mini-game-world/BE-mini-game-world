@@ -15,6 +15,7 @@ export class StatusBombGameService {
 
   // 폭탄들고 있는 유저
   private bombUserList: Map<string, number> = new Map();
+
   // 일시적 무적유저
   private temporarilyExcludedUsers = new Map<string, NodeJS.Timeout>();
   private playUserCount: number;
@@ -24,7 +25,6 @@ export class StatusBombGameService {
   private BOMB_RADIUS: number = 40;
   private TAG_HOLD_DURATION_MS: number = 1500;
   private TIMER_INTERVAL_MS: number = 1000;
-
   private ROOM_NUMBER: string = "0";
 
   private logger: Logger = new Logger("BombGameService");
@@ -158,6 +158,93 @@ export class StatusBombGameService {
 
   getBombUserList(): string[] {
     return Array.from(this.bombUserList.keys());
+  }
+
+  checkOverlappingUser(): boolean{
+    const updatedBombUserList: string[] = [];
+    let updated = false;
+
+    this.bombUserList.forEach(bombUserId => {
+      const bombUserPosition = this.bombGameRoomPosition.get(bombUserId);
+      if (bombUserPosition) {
+        const overlappingUser = Array.from(this.bombGameRoomPosition.entries()).find(([userId, position]) => {
+          if (userId !== bombUserId && this.bombGameRoomPosition.has(userId) && position.room === bombUserPosition.room && !this.temporarilyExcludedUsers.has(userId)) {
+            const distance = Math.sqrt(Math.pow(parseFloat(bombUserPosition.x) - parseFloat(position.x), 2) + Math.pow(parseFloat(bombUserPosition.y) - parseFloat(position.y), 2));
+            return distance <= this.BOMB_RADIUS;
+          }
+          return false;
+        });
+
+        if (overlappingUser) {
+          updatedBombUserList.push(overlappingUser[0]);
+          updated = true;
+          // 새롭게 술래가 된 유저를 일정 시간 동안 술래 상태에서 유지
+          const timeout = setTimeout(() => {
+            this.temporarilyExcludedUsers.delete(overlappingUser[0]);
+            this.temporarilyExcludedUsers.delete(bombUserId);
+          }, this.TAG_HOLD_DURATION_MS); // 술래 상태를 유지
+
+          this.temporarilyExcludedUsers.set(overlappingUser[0], timeout);
+          this.temporarilyExcludedUsers.set(bombUserId, timeout);
+        } else {
+          updatedBombUserList.push(bombUserId);
+        }
+      }
+    });
+    this.bombUserList=updatedBombUserList
+    this.logger.debug(`Updated bombUserList: ${this.bombUserList}`);
+    return updated
+  }
+
+  startBombGameWithTimer(room: string): void {
+    const clientsInRoom: Set<string> = new Set();
+    for (const [client, position] of this.bombGameRoomPosition.entries()) {
+      console.log(position.room,'===========',room)
+      if (position.room === room) {
+        clientsInRoom.add(client);
+      }
+    }
+    //게임 시작유저 + 폭탄유저 설정
+    this.setPlayGameUser(clientsInRoom);
+
+    this.logger.log(`Bomb game started in room ${room} and userlist ${this.getPlayGameUserList()}`);
+
+    this.eventEmitter.emit('bombGame.start', room, this.getPlayGameUserList(), this.getBombUserList());
+
+    let remainingTime = this.BOMB_TIME;
+    const timerInterval = setInterval(() => {
+      remainingTime -= 1;
+      this.eventEmitter.emit('bombGame.timer', room, remainingTime);
+
+      this.logger.debug(`bombTimer ${remainingTime}`);
+
+      if (remainingTime <= 0) {
+        this.eventEmitter.emit('bombGame.timer', room, remainingTime);
+        this.eventEmitter.emit('bombGame.deadUsers', room, this.bombUserList);
+
+        this.deleteBombUserInPlayUserList(this.bombUserList);
+        this.playGameUser =this.getPlayGameUserSet();
+
+        const checkWinner = this.checkWinner();
+        if (checkWinner) {
+          this.logger.debug(`checkWinner ${JSON.stringify(checkWinner)}`);
+          this.eventEmitter.emit('bombGame.winner', room, checkWinner);
+          clearInterval(timerInterval);
+          return;
+        }
+
+        this.bombUserList = this.getNewBombUsers();
+        
+        this.logger.debug(`newBombUser ${this.bombUserList}`);
+        this.eventEmitter.emit('bombGame.newBombUsers', room, this.bombUserList);
+
+        remainingTime = this.BOMB_TIME;
+      }
+    }, this.TIMER_INTERVAL_MS);
+  }
+
+  getBombUserList():string[]{
+      return this.bombUserList;
   }
 
   private selectRandomBombUsers(): string[] {

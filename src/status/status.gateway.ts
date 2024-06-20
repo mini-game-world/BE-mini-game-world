@@ -14,6 +14,7 @@ import { StatusBombGameService } from "./status.service";
 import { OnEvent } from "@nestjs/event-emitter";
 import { playerAttackPositionDTO, playerJoinRoomDTO, playerMovementDTO } from "./DTO/status.DTO";
 
+
 @WebSocketGateway({ cors: { origin: "*" } })
 export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   constructor(private readonly statusService: StatusBombGameService) {
@@ -25,7 +26,6 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private logger: Logger = new Logger("Status-Gateway");
 
   private MIN_PLAYERS_FOR_BOMB_GAME: number = 3;
-
   private HITRADIUS = 40;
 
   private STUN_DURATION_MS: number = 1000;
@@ -49,6 +49,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     const room = data.room;
     client.join(room);
     this.clientsPosition.set(client.id, { room, x: data.x, y: data.y, isStun: 0 });
+
     this.statusService.setBombGamePlayerRoomPosition(client.id, { room, x: data.x, y: data.y, isStun: 0 });
 
     client.to(room).emit("newPlayer", {
@@ -196,7 +197,6 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   bombGameStart(room: string) {
-
     this.PLAYING_ROOM[0] = 1;
     this.bombGameStartFlag = false;
     this.server.emit("playingGame", this.PLAYING_ROOM);
@@ -230,6 +230,6 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     this.bombGameStartFlag = true;
     this.PLAYING_ROOM[0] = 0;
     this.server.emit("playingGame", this.PLAYING_ROOM);
-  }
 
+  }
 }
