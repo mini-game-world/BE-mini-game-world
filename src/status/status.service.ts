@@ -17,7 +17,6 @@ export class StatusBombGameService {
   private bombUserList: Map<string, number> = new Map();
 
   // 일시적 무적유저
-  private temporarilyExcludedUsers = new Map<string, NodeJS.Timeout>();
   private playUserCount: number;
 
   private BOMB_USER_PERCENT: number = 0.2;
@@ -30,7 +29,11 @@ export class StatusBombGameService {
   private logger: Logger = new Logger("BombGameService");
 
   setBombGamePlayerRoomPosition(playId:string, { room, x, y, isStun }) {
-    this.bombGameRoomPosition.set(playId, { room: this.ROOM_NUMBER, x: x, y: x, isStun: isStun });
+    this.bombGameRoomPosition.set(playId, { room: room, x: x, y: x, isStun: isStun });
+  }
+
+  getBombGamePalyerMap(){
+    return this.bombGameRoomPosition
   }
 
   getPlayGameUserList(): string[] {
@@ -105,16 +108,19 @@ export class StatusBombGameService {
 
   startBombGameWithTimer(room: string): void {
     const clientsInRoom: Set<string> = new Set();
+
+    this.logger.warn(`bbombGameRoomPosition = > ${Array.from(this.bombGameRoomPosition.keys())}`)
+
     for (const [client, position] of this.bombGameRoomPosition.entries()) {
-      if (position.room === room) {
         clientsInRoom.add(client);
-      }
     }
     //게임 시작유저 + 폭탄유저 설정
     this.setPlayGameUser(clientsInRoom);
 
-    this.logger.log(`Bomb game started in room ${room} and userlist ${this.getPlayGameUserList()}`);
+    this.logger.warn(`Bomb game started in room ${room} and userlist ${this.getPlayGameUserList()}`);
 
+    this.logger.warn(` this.getBombUserList()  ==== >  ${ this.getBombUserList() }`);
+    
     this.eventEmitter.emit("bombGame.start", room, this.getPlayGameUserList(), this.getBombUserList());
 
     let remainingTime = this.BOMB_TIME;

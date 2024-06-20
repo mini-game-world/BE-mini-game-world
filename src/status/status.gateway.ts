@@ -14,7 +14,6 @@ import { StatusBombGameService } from "./status.service";
 import { OnEvent } from "@nestjs/event-emitter";
 import { playerAttackPositionDTO, playerJoinRoomDTO, playerMovementDTO } from "./DTO/status.DTO";
 
-
 @WebSocketGateway({ cors: { origin: "*" } })
 export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   constructor(private readonly statusService: StatusBombGameService) {
@@ -26,6 +25,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private logger: Logger = new Logger("Status-Gateway");
 
   private MIN_PLAYERS_FOR_BOMB_GAME: number = 3;
+
   private HITRADIUS = 40;
 
   private STUN_DURATION_MS: number = 1000;
@@ -49,7 +49,6 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     const room = data.room;
     client.join(room);
     this.clientsPosition.set(client.id, { room, x: data.x, y: data.y, isStun: 0 });
-
     this.statusService.setBombGamePlayerRoomPosition(client.id, { room, x: data.x, y: data.y, isStun: 0 });
 
     client.to(room).emit("newPlayer", {
@@ -69,13 +68,12 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     this.logger.log(`Number of connected clients in room ${room}: ${allClientsInRoom.length}`);
 
     // 방에 n 명 이상 존재시 게임시작 신호를 보내줘야해~
-    if (this.clientsPosition.size > this.MIN_PLAYERS_FOR_BOMB_GAME && this.bombGameStartFlag) {
+    if (this.isBombGameStart()) {
       setTimeout(() => {
         // 다시 조건을 체크
-        if (!(this.clientsPosition.size > this.MIN_PLAYERS_FOR_BOMB_GAME && this.bombGameStartFlag)) {
-          return; // 조건이 만족되지 않으면 return
+        if (this.isBombGameStart()) {
+          this.bombGameStart(room);
         }
-        this.bombGameStart(room); // 조건이 만족되면 게임 시작
       }, 5000); // 5초 후에 실행
     }
   }
@@ -94,7 +92,6 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       this.statusService.setBombGamePlayerRoomPosition(client.id, { room, x: data.x, y: data.y, isStun: 0 });
 
       client.to(room).emit("playerMoved", { playerId: client.id, x: data.x, y: data.y });
-      // this.logger.log(`player : ${client.id}, x : ${data.x}, y : ${data.y}`);
 
       // bombUserList가 비어 있으면 로직을 실행하지 않음
       if (this.statusService.getBombUserList().length === 0) {
@@ -104,7 +101,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         return;
       }
 
-      this.statusService.checkOverlappingUser(client.id, data.x, data.y)
+      this.statusService.checkOverlappingUser(client.id, data.x, data.y);
     }
   }
 
@@ -181,8 +178,6 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   //연결이 되었다면.. 뭔가 행위를 할 수있다 .~!
   handleConnection(client: any, ...args: any[]): any {
     this.logger.log(`Client connected: ${client.id}`);
-    const randomNumber = Math.floor(Math.random() * (30)) + 1
-    client.emit("playerNum", randomNumber);
   }
 
   handleDisconnect(client: any): any {
@@ -230,6 +225,12 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     this.bombGameStartFlag = true;
     this.PLAYING_ROOM[0] = 0;
     this.server.emit("playingGame", this.PLAYING_ROOM);
+  }
 
+  private isBombGameStart(): boolean {
+    if (this.statusService.getBombGamePalyerMap().size > this.MIN_PLAYERS_FOR_BOMB_GAME && this.bombGameStartFlag) {
+      return true;
+    }
+    return false;
   }
 }
