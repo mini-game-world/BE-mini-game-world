@@ -3,13 +3,19 @@ import { EventEmitter2 } from "@nestjs/event-emitter";
 
 @Injectable()
 export class StatusBombGameService {
-  constructor(private eventEmitter: EventEmitter2) {}
+  constructor(private eventEmitter: EventEmitter2) {
+  }
+
   // bomb 게임방에 입장유저
   private bombGameRoomPosition: Map<string, { room: string, x: string, y: string, isStun: number }> = new Map();
   // bomb 게임 플레이 유저
   private playGameUser: Set<string> = new Set();
+  //
+  private deadPlayers: string[] = [];
+
   // 폭탄들고 있는 유저
-  private bombUserList: string[] = [];
+  private bombUserList: Map<string, number> = new Map();
+
   // 일시적 무적유저
   private temporarilyExcludedUsers = new Map<string, NodeJS.Timeout>();
   private playUserCount: number;
@@ -19,43 +25,16 @@ export class StatusBombGameService {
   private BOMB_RADIUS: number = 40;
   private TAG_HOLD_DURATION_MS: number = 1500;
   private TIMER_INTERVAL_MS: number = 1000;
+  private ROOM_NUMBER: string = "0";
 
   private logger: Logger = new Logger("BombGameService");
 
-  setBombGamePlayerRoomPosition(playId,{room, x, y, isStun}){
-    this.bombGameRoomPosition.set(playId,{room:room,x:x,y:x,isStun:isStun})
-  }
-
-  setPlayGameUser(playList: Set<string>) {
-    // 기존 관리되고 있던 유저 초기화
-    this.bombUserList = [];
-    this.playGameUser = playList;
-    this.playUserCount = this.playGameUser.size;
-
-    // 랜덤으로 폭탄 유저를 선정
-    this.bombUserList = this.selectRandomBombUsers();
-
-    return this.playGameUser;
-  }
-
-  getNewBombUsers(): string[] {
-    this.bombUserList = this.selectRandomBombUsers();
-    return this.bombUserList;
+  setBombGamePlayerRoomPosition(playId:string, { room, x, y, isStun }) {
+    this.bombGameRoomPosition.set(playId, { room: this.ROOM_NUMBER, x: x, y: x, isStun: isStun });
   }
 
   getPlayGameUserList(): string[] {
     return Array.from(this.playGameUser);
-  }
-
-  getPlayGameUserSet(): Set<string> {
-    return this.playGameUser;
-  }
-
-  deleteBombUserInPlayUserList(bombList: string[]) {
-    bombList.forEach(userId => {
-      this.playGameUser.delete(userId);
-    });
-    this.playUserCount = this.playGameUser.size;
   }
 
   disconnectPlayUser(deleteUserId: string): void {
@@ -65,11 +44,120 @@ export class StatusBombGameService {
     }
   }
 
-  checkWinner(): string[] {
-    if (this.playUserCount <= 1) {
-      return this.getPlayGameUserList();
+  checkOverlappingUser(clientId: string, x: string, y: string){
+    const myPosition = { x: parseFloat(x), y: parseFloat(y) };
+    // 이 유저가 폭탄 유저라면
+    if (this.bombUserList.has(clientId)) {
+      if (this.bombUserList.get(clientId) === 1) return;
+
+      const userWithinRadius = this.getPlayGameUserList().filter((user) => {
+        return !this.bombUserList.has(user);
+      }).find(user => {
+          const player = this.bombGameRoomPosition.get(user);
+          const playerPosition = { x: parseFloat(player.x), y: parseFloat(player.y) };
+          const distance = Math.sqrt(Math.pow(myPosition.x - playerPosition.x, 2) + Math.pow(myPosition.y - playerPosition.y, 2));
+          return distance <= this.BOMB_RADIUS;
+        }
+      );
+      if (userWithinRadius) {
+        this.bombUserList.delete(clientId);
+        this.deadPlayers.forEach(userId => {
+          this.bombUserList.delete(userId);
+        });
+        this.bombUserList.set(userWithinRadius, 1);
+        //신호 보내기
+        this.eventEmitter.emit("bombGame.newBombUsers", this.ROOM_NUMBER, this.getBombUserList());
+        this.logger.error(`Updated bombUserList: ${JSON.stringify(Array.from(this.bombUserList.entries()))}`);
+        // 1.5초 뒤에 userWithinRadius의 값을 0으로 설정하는 비동기 작업 수행
+        setTimeout(() => {
+          this.bombUserList.set(userWithinRadius, 0);
+        }, this.TAG_HOLD_DURATION_MS);
+      }
+    } else { // 폭탄유저가 아니라면
+      const userWithinRadius = this.getPlayGameUserList().filter((user) => {
+        return this.bombUserList.has(user);
+      }).find(user => {
+          const player = this.bombGameRoomPosition.get(user);
+          const playerPosition = { x: parseFloat(player.x), y: parseFloat(player.y) };
+          const distance = Math.sqrt(Math.pow(myPosition.x - playerPosition.x, 2) + Math.pow(myPosition.y - playerPosition.y, 2));
+          return distance <= this.BOMB_RADIUS && this.bombUserList.get(user) === 0;
+        }
+      );
+      if (userWithinRadius) {
+        this.bombUserList.delete(userWithinRadius);
+        this.deadPlayers.forEach(userId => {
+          this.bombUserList.delete(userId);
+        });
+        this.bombUserList.set(clientId, 1);
+        this.eventEmitter.emit("bombGame.newBombUsers", this.ROOM_NUMBER, this.getBombUserList());
+        this.logger.fatal(`Updated bombUserList: ${JSON.stringify(Array.from(this.bombUserList.entries()))}`);
+        // 1초 뒤에 userWithinRadius의 값을 0으로 설정하는 비동기 작업 수행
+        setTimeout(() => {
+          this.bombUserList.set(clientId, 0);
+        }, this.TAG_HOLD_DURATION_MS);
+      }
     }
-    return null;
+  }
+
+  checkIsPlayer(userId: string) {
+    return !this.playGameUser.has(userId);
+  }
+
+  startBombGameWithTimer(room: string): void {
+    const clientsInRoom: Set<string> = new Set();
+    for (const [client, position] of this.bombGameRoomPosition.entries()) {
+      if (position.room === room) {
+        clientsInRoom.add(client);
+      }
+    }
+    //게임 시작유저 + 폭탄유저 설정
+    this.setPlayGameUser(clientsInRoom);
+
+    this.logger.log(`Bomb game started in room ${room} and userlist ${this.getPlayGameUserList()}`);
+
+    this.eventEmitter.emit("bombGame.start", room, this.getPlayGameUserList(), this.getBombUserList());
+
+    let remainingTime = this.BOMB_TIME;
+    const timerInterval = setInterval(() => {
+      remainingTime -= 1;
+      this.eventEmitter.emit("bombGame.timer", room, remainingTime);
+
+      this.logger.debug(`bombTimer ${remainingTime}`);
+
+      if (remainingTime <= 0) {
+        this.eventEmitter.emit("bombGame.timer", room, remainingTime);
+
+        const bombUserMapToList: string[] = Array.from(this.bombUserList.keys());
+
+        this.logger.log(`bombUserMapToList ${bombUserMapToList}`);
+        this.eventEmitter.emit("bombGame.deadUsers", room, bombUserMapToList);
+
+        this.deleteBombUserInPlayUserList(bombUserMapToList);
+
+        const checkWinner = this.checkWinner();
+        if (checkWinner) {
+          this.logger.debug(`checkWinner ${JSON.stringify(checkWinner)}`);
+          this.eventEmitter.emit("bombGame.winner", room, checkWinner);
+          clearInterval(timerInterval);
+          return;
+        }
+
+        this.bombUserList.clear();
+        this.bombUserList = this.getNewBombUsers();
+
+        const newBombUsers: string[] = Array.from(this.bombUserList.keys());
+
+        this.logger.debug(`newBombUser ${newBombUsers}`);
+
+        this.eventEmitter.emit("bombGame.newBombUsers", room, newBombUsers);
+
+        remainingTime = this.BOMB_TIME;
+      }
+    }, this.TIMER_INTERVAL_MS);
+  }
+
+  getBombUserList(): string[] {
+    return Array.from(this.bombUserList.keys());
   }
 
   checkOverlappingUser(): boolean{
@@ -176,4 +264,41 @@ export class StatusBombGameService {
     }
     return bombUsers;
   }
+
+  private setPlayGameUser(playList: Set<string>) {
+    // 기존 관리되고 있던 유저 초기화
+    this.bombUserList.clear();
+    this.playGameUser = playList;
+    this.playUserCount = this.playGameUser.size;
+
+    // 랜덤으로 폭탄 유저를 선정
+    this.selectRandomBombUsers().forEach(userId => {
+      this.bombUserList.set(userId, 0);
+    });
+
+    return this.playGameUser;
+  }
+
+  private getNewBombUsers(): Map<string, number> {
+    this.bombUserList.clear();
+    this.selectRandomBombUsers().forEach(userId => {
+      this.bombUserList.set(userId, 0);
+    });
+    return this.bombUserList;
+  }
+
+  private deleteBombUserInPlayUserList(bombList: string[]) {
+    bombList.forEach(userId => {
+      this.playGameUser.delete(userId);
+    });
+    this.playUserCount = this.playGameUser.size;
+  }
+
+  private checkWinner(): string[] {
+    if (this.playUserCount <= 1) {
+      return this.getPlayGameUserList();
+    }
+    return null;
+  }
 }
+

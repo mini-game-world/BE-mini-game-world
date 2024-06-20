@@ -10,8 +10,10 @@ import {
 import { Logger } from "@nestjs/common";
 import { Server, Socket } from "socket.io";
 import { StatusBombGameService } from "./status.service";
-import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
-import { playerJoinRoomDTO,playerMovementDTO,playerAttackPositionDTO } from './DTO/status.DTO'
+
+import { OnEvent } from "@nestjs/event-emitter";
+import { playerAttackPositionDTO, playerJoinRoomDTO, playerMovementDTO } from "./DTO/status.DTO";
+
 
 @WebSocketGateway({ cors: { origin: "*" } })
 export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
@@ -28,7 +30,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   private STUN_DURATION_MS: number = 1000;
   private PLAYING_ROOM: number[] = [0, 0, 0];
-  private bombGameStartFlag =true
+  private bombGameStartFlag = true;
 
   private clientsPosition: Map<string, { room: string, x: string, y: string, isStun: number }> = new Map();
 
@@ -47,8 +49,9 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     const room = data.room;
     client.join(room);
     this.clientsPosition.set(client.id, { room, x: data.x, y: data.y, isStun: 0 });
-    this.statusService.setBombGamePlayerRoomPosition(client.id,{ room, x: data.x, y: data.y, isStun: 0 })
-  
+
+    this.statusService.setBombGamePlayerRoomPosition(client.id, { room, x: data.x, y: data.y, isStun: 0 });
+
     client.to(room).emit("newPlayer", {
       playerId: client.id,
       x: data.x,
@@ -59,6 +62,8 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       .map(([playerId, pos]) => ({ playerId, x: pos.x, y: pos.y }));
 
     client.emit("currentPlayers", allClientsInRoom);
+    client.emit("playingGame", this.PLAYING_ROOM);
+    client.emit("startBombGame", this.statusService.getPlayGameUserList());
 
     this.logger.log(`Client ${client.id} joined room ${room}`);
     this.logger.log(`Number of connected clients in room ${room}: ${allClientsInRoom.length}`);
@@ -80,28 +85,31 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   playerPosition(client: Socket, data: playerMovementDTO): void {
     const clientData = this.clientsPosition.get(client.id);
     if (clientData) {
-      const room = clientData.room
+      const room = clientData.room;
 
       /**
        * todo : room 종류에 따라서 포지션 업데이트를 해야함
        */
       this.clientsPosition.set(client.id, { room, x: data.x, y: data.y, isStun: 0 });
-      this.statusService.setBombGamePlayerRoomPosition(client.id,{ room, x: data.x, y: data.y, isStun: 0 })
+      this.statusService.setBombGamePlayerRoomPosition(client.id, { room, x: data.x, y: data.y, isStun: 0 });
 
       client.to(room).emit("playerMoved", { playerId: client.id, x: data.x, y: data.y });
+      // this.logger.log(`player : ${client.id}, x : ${data.x}, y : ${data.y}`);
 
       // bombUserList가 비어 있으면 로직을 실행하지 않음
       if (this.statusService.getBombUserList().length === 0) {
         return;
       }
-      if (this.statusService.checkOverlappingUser()) {
-        this.server.to(room).emit("bombUsers", this.statusService.getBombUserList());
+      if (this.statusService.checkIsPlayer(client.id)) {
+        return;
       }
+
+      this.statusService.checkOverlappingUser(client.id, data.x, data.y)
     }
   }
 
-  @SubscribeMessage('attackPosition')
-  handleAttackPosition(client: Socket, data:playerAttackPositionDTO): void {
+  @SubscribeMessage("attackPosition")
+  handleAttackPosition(client: Socket, data: playerAttackPositionDTO): void {
     const clientData = this.clientsPosition.get(client.id);
     if (!clientData) {
       this.logger.warn(`Client ${client.id} sent attack position but is not in any room`);
@@ -140,7 +148,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     hitResults.forEach(async (playerId) => {
       const targetClient = this.server.sockets.sockets.get(playerId);
       if (targetClient) {
-        targetClient.emit('attacked', 1);
+        targetClient.emit("attacked", 1);
 
         // 유저의 isStun을 1초간 1로 바꿨다가 다시 0으로 바꾸는 비동기 코드
         const clientPosition = this.clientsPosition.get(playerId);
@@ -158,10 +166,10 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     });
 
     // 히트 결과를 해당 룸의 모든 클라이언트에게 알림
-    this.server.to(room).emit('attackedPlayers', hitResults);
+    this.server.to(room).emit("attackedPlayers", hitResults);
 
     // 공격중인 유저를 모두에게 전파(화면에 공격중인것을 표시하기 위해)
-    client.to(room).emit('attackPlayer', client.id);
+    client.to(room).emit("attackPlayer", client.id);
 
     this.logger.log(`Attack results: ${JSON.stringify(hitResults)}`);
   }
@@ -173,6 +181,8 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   //연결이 되었다면.. 뭔가 행위를 할 수있다 .~!
   handleConnection(client: any, ...args: any[]): any {
     this.logger.log(`Client connected: ${client.id}`);
+    const randomNumber = Math.floor(Math.random() * (30)) + 1
+    client.emit("playerNum", randomNumber);
   }
 
   handleDisconnect(client: any): any {
@@ -193,32 +203,33 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     this.statusService.startBombGameWithTimer(room);
   }
 
-  @OnEvent('bombGame.start')
+  @OnEvent("bombGame.start")
   handleBombGameStart(room: string, playGameUserList: string[], bombUserList: string[]) {
     this.server.to(room).emit("startBombGame", playGameUserList);
     this.server.to(room).emit("bombUsers", bombUserList);
   }
 
-  @OnEvent('bombGame.timer')
+  @OnEvent("bombGame.timer")
   handleBombGameTimer(room: string, remainingTime: number) {
     this.server.to(room).emit("bombTimer", { remainingTime });
   }
 
-  @OnEvent('bombGame.deadUsers')
+  @OnEvent("bombGame.deadUsers")
   handleBombGameDeadUsers(room: string, bombUserList: string[]) {
     this.server.to(room).emit("deadUsers", bombUserList);
   }
 
-  @OnEvent('bombGame.newBombUsers')
+  @OnEvent("bombGame.newBombUsers")
   handleBombGameNewBombUsers(room: string, bombUserList: string[]) {
     this.server.to(room).emit("bombUsers", bombUserList);
   }
 
-  @OnEvent('bombGame.winner')
+  @OnEvent("bombGame.winner")
   handleBombGameWinner(room: string, winner: string[]) {
     this.server.to(room).emit("gameWinner", winner);
-    this.bombGameStartFlag=true
+    this.bombGameStartFlag = true;
     this.PLAYING_ROOM[0] = 0;
     this.server.emit("playingGame", this.PLAYING_ROOM);
+
   }
 }
