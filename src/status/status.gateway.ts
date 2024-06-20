@@ -31,8 +31,9 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private STUN_DURATION_MS: number = 1000;
   private PLAYING_ROOM: number[] = [0, 0, 0];
   private bombGameStartFlag = true;
+  private generator = new RandomNumberGenerator(1, 30);
 
-  private clientsPosition: Map<string, { room: string, x: string, y: string, isStun: number }> = new Map();
+  private clientsPosition: Map<string, { room: string, x: string, y: string, avatar: number, isStun: number }> = new Map();
 
   @SubscribeMessage("joinRoom")
   handleJoinRoom(client: Socket, data: playerJoinRoomDTO): void {
@@ -48,20 +49,19 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     // 새로운 방에 조인합니다.
     const room = data.room;
     client.join(room);
-    this.clientsPosition.set(client.id, { room, x: data.x, y: data.y, isStun: 0 });
+    const randomNum = this.generator.getRandomNumber();
+    this.clientsPosition.set(client.id, { room, x: data.x, y: data.y, avatar: randomNum, isStun: 0 });
     this.statusService.setBombGamePlayerRoomPosition(client.id, { room, x: data.x, y: data.y, isStun: 0 });
-    const randomNum = Math.floor((Math.random() * 5)) + 1;
-    this.server.to(data.room).emit("playerNum", randomNum);
-    this.server.to(data.room).emit("nickname", { [client.id] : "bestplayer" });
 
     client.to(room).emit("newPlayer", {
       playerId: client.id,
       x: data.x,
-      y: data.y
+      y: data.y,
+      avatar: randomNum
     });
     const allClientsInRoom = Array.from(this.clientsPosition.entries())
       .filter(([_, pos]) => pos.room === room)
-      .map(([playerId, pos]) => ({ playerId, x: pos.x, y: pos.y }));
+      .map(([playerId, pos]) => ({ playerId, x: pos.x, y: pos.y, avatar: pos.avatar }));
 
     client.emit("currentPlayers", allClientsInRoom);
     client.emit("playingGame", this.PLAYING_ROOM);
@@ -87,11 +87,12 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     const clientData = this.clientsPosition.get(client.id);
     if (clientData) {
       const room = clientData.room;
+      const avatar = clientData.avatar;
 
       /**
        * todo : room 종류에 따라서 포지션 업데이트를 해야함
        */
-      this.clientsPosition.set(client.id, { room, x: data.x, y: data.y, isStun: 0 });
+      this.clientsPosition.set(client.id, { room, x: data.x, y: data.y, avatar, isStun: 0 });
       this.statusService.setBombGamePlayerRoomPosition(client.id, { room, x: data.x, y: data.y, isStun: 0 });
 
       client.to(room).emit("playerMoved", { playerId: client.id, x: data.x, y: data.y });
@@ -202,7 +203,6 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   @OnEvent("bombGame.start")
   handleBombGameStart(room: string, playGameUserList: string[], bombUserList: string[]) {
-    this.logger.log(`나 지금 클라한테 붐유저 보내고있어 ${bombUserList}`);
     this.server.to(room).emit("startBombGame", playGameUserList);
     this.server.to(room).emit("bombUsers", bombUserList);
   }
@@ -236,5 +236,30 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       return true;
     }
     return false;
+  }
+}
+
+class RandomNumberGenerator {
+  private numbers: number[];
+
+  constructor(min: number, max: number) {
+    this.numbers = [];
+    for (let i = min; i <= max; i++) {
+      this.numbers.push(i);
+    }
+  }
+
+  getRandomNumber(): number | null {
+    if (this.numbers.length === 0) {
+      return 0; // 모든 숫자를 다 뽑았으면 null 반환
+    }
+
+    const randomIndex = Math.floor(Math.random() * this.numbers.length);
+    const randomNumber = this.numbers[randomIndex];
+
+    // 이미 뽑은 숫자는 배열에서 제거
+    this.numbers.splice(randomIndex, 1);
+
+    return randomNumber;
   }
 }

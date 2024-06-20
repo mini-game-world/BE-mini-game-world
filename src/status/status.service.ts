@@ -155,6 +155,8 @@ export class StatusBombGameService {
         if (checkWinner) {
           this.logger.debug(`checkWinner ${JSON.stringify(checkWinner)}`);
           this.eventEmitter.emit("bombGame.winner", this.ROOM_NUMBER, checkWinner);
+          this.bombGameRoomPosition.clear();
+          this.deadPlayers = [];
           clearInterval(timerInterval);
           return;
         }
