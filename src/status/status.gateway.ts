@@ -31,7 +31,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private STUN_DURATION_MS: number = 1000;
   private PLAYING_ROOM: number[] = [0, 0, 0];
   private bombGameStartFlag = true;
-  private generator = new RandomNumberGenerator(1, 30);
+  private generator = new RandomNumberGenerator(1, 5);
 
   private clientsPosition: Map<string, { room: string, x: string, y: string, avatar: number, isStun: number }> = new Map();
 
