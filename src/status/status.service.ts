@@ -114,7 +114,7 @@ export class StatusBombGameService {
     return !this.playGameUser.has(userId);
   }
 
-  startBombGameWithTimer(room: string): void {
+  startBombGameWithTimer(room: number): void {
     const clientsInRoom: Set<string> = new Set();
 
     this.logger.warn(`bbombGameRoomPosition = > ${Array.from(this.bombGameRoomPosition.keys())}`)
