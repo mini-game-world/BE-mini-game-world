@@ -20,7 +20,7 @@ export class StatusBombGameService {
   private playUserCount: number;
 
   private BOMB_USER_PERCENT: number = 0.2;
-  private BOMB_TIME: number = 30;
+  private BOMB_TIME: number = 10;
   private BOMB_RADIUS: number = 40;
   private TAG_HOLD_DURATION_MS: number = 1500;
   private TIMER_INTERVAL_MS: number = 1000;
@@ -30,6 +30,15 @@ export class StatusBombGameService {
 
   setBombGamePlayerRoomPosition(playId: string, { room, x, y, isStun }) {
     this.bombGameRoomPosition.set(playId, { room: room, x: x, y: y, isStun: isStun });
+  }
+
+  removeBombGamePlayerRoomPosition(playId) {
+    if (this.bombGameRoomPosition.has(playId)) {
+      this.bombGameRoomPosition.delete(playId);
+      console.log(`Player ${playId} position removed.`);
+    } else {
+      console.log(`Player ${playId} not found.`);
+    }
   }
 
   getBombGamePalyerMap() {
@@ -114,7 +123,7 @@ export class StatusBombGameService {
     return !this.playGameUser.has(userId);
   }
 
-  startBombGameWithTimer(room: string): void {
+  startBombGameWithTimer(room: number): void {
     const clientsInRoom: Set<string> = new Set();
 
     this.logger.warn(`bbombGameRoomPosition = > ${Array.from(this.bombGameRoomPosition.keys())}`)
@@ -155,7 +164,6 @@ export class StatusBombGameService {
         if (checkWinner) {
           this.logger.debug(`checkWinner ${JSON.stringify(checkWinner)}`);
           this.eventEmitter.emit("bombGame.winner", this.ROOM_NUMBER, checkWinner);
-          this.bombGameRoomPosition.clear();
           this.deadPlayers = [];
           clearInterval(timerInterval);
           return;

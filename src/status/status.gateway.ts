@@ -16,7 +16,10 @@ import { playerAttackPositionDTO, playerJoinRoomDTO, playerMovementDTO } from ".
 
 @WebSocketGateway({ cors: { origin: "*" } })
 export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
+  private CHECK_INTERVAL = 5000; // 5초 간격으로 체크
+  private MIN_PLAYERS_FOR_BOMB_GAME = 4; // 최소 플레이어 수, 예시로 4명 설정
   constructor(private readonly statusService: StatusBombGameService) {
+    setInterval(this.checkBombRooms.bind(this), this.CHECK_INTERVAL);
   }
 
   @WebSocketServer()
@@ -24,14 +27,13 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   private logger: Logger = new Logger("Status-Gateway");
 
-  private MIN_PLAYERS_FOR_BOMB_GAME: number = 3;
 
   private HITRADIUS = 40;
 
   private STUN_DURATION_MS: number = 1000;
   private PLAYING_ROOM: number[] = [0, 0, 0];
   private bombGameStartFlag = true;
-  private generator = new RandomNumberGenerator(1, 30);
+  private generator = new RandomNumberGenerator(1, 5);
 
   private clientsPosition: Map<string, { room: string, x: string, y: string, avatar: number, isStun: number }> = new Map();
 
@@ -43,6 +45,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       const oldRoom = clientData.room;
       client.leave(oldRoom);
       client.to(oldRoom).emit("playerLeft", { playerId: client.id });
+      if (oldRoom === '0') this.statusService.removeBombGamePlayerRoomPosition(client.id);
       this.logger.log(`Client ${client.id} left room ${oldRoom}`);
     }
 
@@ -52,7 +55,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     const randomNum = this.generator.getRandomNumber();
     this.clientsPosition.set(client.id, { room, x: data.x, y: data.y, avatar: randomNum, isStun: 0 });
     this.statusService.setBombGamePlayerRoomPosition(client.id, { room, x: data.x, y: data.y, isStun: 0 });
-
+    this.server.to(room).emit("nickname", { [client.id]: "bestplayer" });
     client.to(room).emit("newPlayer", {
       playerId: client.id,
       x: data.x,
@@ -65,20 +68,9 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
     client.emit("currentPlayers", allClientsInRoom);
     client.emit("playingGame", this.PLAYING_ROOM);
-    client.emit("startBombGame", this.statusService.getPlayGameUserList());
 
     this.logger.log(`Client ${client.id} joined room ${room}`);
     this.logger.log(`Number of connected clients in room ${room}: ${allClientsInRoom.length}`);
-
-    // 방에 n 명 이상 존재시 게임시작 신호를 보내줘야해~
-    if (this.isBombGameStart()) {
-      setTimeout(() => {
-        // 다시 조건을 체크
-        if (this.isBombGameStart()) {
-          this.bombGameStart(room);
-        }
-      }, 5000); // 5초 후에 실행
-    }
   }
 
 
@@ -189,15 +181,17 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
     const size = this.clientsPosition.size;
     client.broadcast.emit("disconnected", client.id);
+    this.statusService.removeBombGamePlayerRoomPosition(client.id);
 
     this.logger.log(`Client disconnected: ${client.id}`);
     this.logger.log(`Number of connected clients: ${size}`);
   }
 
-  bombGameStart(room: string) {
+  bombGameStart(room: number) {
     this.PLAYING_ROOM[0] = 1;
     this.bombGameStartFlag = false;
     this.server.emit("playingGame", this.PLAYING_ROOM);
+    this.server.emit("bombGameStart", 1);
     this.statusService.startBombGameWithTimer(room);
   }
 
@@ -229,6 +223,18 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     this.bombGameStartFlag = true;
     this.PLAYING_ROOM[0] = 0;
     this.server.emit("playingGame", this.PLAYING_ROOM);
+  }
+
+  private checkBombRooms() {
+    // 방에 n 명 이상 존재시 게임시작 신호를 보내줘야해~
+    if (this.isBombGameStart()) {
+      this.server.to("0").emit("bombGameReady", 1);
+      setTimeout(() => {
+        if (this.isBombGameStart()) {
+          this.bombGameStart(0);
+        }
+      }, 5000);
+    }
   }
 
   private isBombGameStart(): boolean {
