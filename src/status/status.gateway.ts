@@ -38,7 +38,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private clientsRoom: Map<string, string> = new Map();
   private clientsPosition: Map<string, { room: string, x: string, y: string, avatar: number, isStun: number }> = new Map();
 
-  @SubscribeMessage("joinRoom")
+  // @SubscribeMessage("joinRoom")
   handleJoinRoom(client: Socket, data: playerJoinRoomDTO): void {
     // 클라이언트가 기존에 속해있던 방에서 떠납니다.
     let avatar: number;
