@@ -10,7 +10,7 @@ import {
 import { Logger } from "@nestjs/common";
 import { Server, Socket } from "socket.io";
 import { StatusBombGameService } from "./status.service";
-
+import { RandomNumberGenerator } from './Utils/utils.RandomNumberGenerator'
 import { OnEvent } from "@nestjs/event-emitter";
 import { playerAttackPositionDTO, playerJoinRoomDTO, playerMovementDTO } from "./DTO/status.DTO";
 
@@ -191,6 +191,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     this.PLAYING_ROOM[0] = 1;
     this.bombGameStartFlag = false;
     this.server.emit("playingGame", this.PLAYING_ROOM);
+    this.server.emit("bombGameStart", 1);
     this.statusService.startBombGameWithTimer(room);
   }
 
@@ -227,7 +228,12 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private checkBombRooms() {
     // 방에 n 명 이상 존재시 게임시작 신호를 보내줘야해~
     if (this.isBombGameStart()) {
-      this.bombGameStart(0);
+      this.server.to("0").emit("bombGameReady", 1);
+      setTimeout(() => {
+        if (this.isBombGameStart()) {
+          this.bombGameStart(0);
+        }
+      }, 5000);
     }
   }
 
@@ -236,32 +242,5 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       return true;
     }
     return false;
-  }
-
-
-}
-
-class RandomNumberGenerator {
-  private numbers: number[];
-
-  constructor(min: number, max: number) {
-    this.numbers = [];
-    for (let i = min; i <= max; i++) {
-      this.numbers.push(i);
-    }
-  }
-
-  getRandomNumber(): number {
-    if (this.numbers.length === 0) {
-      return 1; // 모든 숫자를 다 뽑았으면 1 반환
-    }
-
-    const randomIndex = Math.floor(Math.random() * this.numbers.length);
-    const randomNumber = this.numbers[randomIndex];
-
-    // 이미 뽑은 숫자는 배열에서 제거
-    this.numbers.splice(randomIndex, 1);
-
-    return randomNumber;
   }
 }
