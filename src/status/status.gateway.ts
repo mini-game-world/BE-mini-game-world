@@ -194,7 +194,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
     this.server.emit("currentPlayers", allClientsInRoom);
     this.server.emit("playingGame", this.PLAYING_ROOM);
-1
+
     this.logger.log(`Client connected: ${client.id}`);
     this.logger.log(`Client ${client.id} joined room ${room}`);
     this.logger.log(`Number of connected clients in room ${room}: ${allClientsInRoom.length}`);    

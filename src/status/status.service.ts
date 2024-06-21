@@ -59,62 +59,47 @@ export class StatusBombGameService {
   checkOverlappingUser(clientId: string, x: string, y: string) {
     const myPosition = { x: parseFloat(x), y: parseFloat(y) };
 
-    // 이 유저가 폭탄 유저라면
-    if (this.bombUserList.has(clientId)) {
-      if (this.bombUserList.get(clientId) === 1) {
-        return;
-      }
+    const isBombUser = this.bombUserList.has(clientId);
 
-      const userWithinRadius = this.getPlayGameUserList().filter((user) => {
-        return !this.bombUserList.has(user);
-      }).find(user => {
-        const player = this.bombGameRoomPosition.get(user);
-        const playerPosition = { x: parseFloat(player.x), y: parseFloat(player.y) };
-        const distance = Math.sqrt(Math.pow(myPosition.x - playerPosition.x, 2) + Math.pow(myPosition.y - playerPosition.y, 2));
-        return distance <= this.BOMB_RADIUS;
+    // 이동한 유저가 폭탄유저인데, 폭탄을 넘겨받은지 일정시간 이하라면 리턴
+    if (isBombUser && this.bombUserList.get(clientId) === 1) {
+      return;
+    }
+
+    // 폭탄유저면 targetUsers에 폭탄이 아닌 유저들이 담기고 일반유저라면 폭탄유저들이 담긴다.
+    const targetUsers = this.getPlayGameUserList().filter(user => {
+      return isBombUser ? !this.bombUserList.has(user) : this.bombUserList.has(user);
+    });
+
+
+    // 타겟유저목록에서 설정한 범위 안으로 들어온 유저들만 찾아낸다.
+    const userWithinRadius = targetUsers.find(user => {
+      const player = this.bombGameRoomPosition.get(user);
+      const playerPosition = { x: parseFloat(player.x), y: parseFloat(player.y) };
+      const distance = Math.sqrt(Math.pow(myPosition.x - playerPosition.x, 2) + Math.pow(myPosition.y - playerPosition.y, 2));
+      return distance <= this.BOMB_RADIUS && (!isBombUser || this.bombUserList.get(user) === 0);
+    });
+
+    if (userWithinRadius) {
+      this.deadPlayers.forEach(userId => {
+        this.bombUserList.delete(userId);
       });
 
-      if (userWithinRadius) {
+      if (isBombUser) {
         this.bombUserList.delete(clientId);
-        this.deadPlayers.forEach(userId => {
-          this.bombUserList.delete(userId);
-        });
         this.bombUserList.set(userWithinRadius, 1);
-
-        //신호 보내기
-        this.eventEmitter.emit("bombGame.newBombUsers", this.ROOM_NUMBER, this.getBombUserList());
-        this.logger.error(`Updated bombUserList: ${JSON.stringify(Array.from(this.bombUserList.entries()))}`);
-
-        // 1.5초 뒤에 userWithinRadius의 값을 0으로 설정하는 비동기 작업 수행
-        setTimeout(() => {
-          this.bombUserList.set(userWithinRadius, 0);
-        }, this.TAG_HOLD_DURATION_MS);
-      }
-    } else { // 폭탄유저가 아니라면
-      const userWithinRadius = this.getPlayGameUserList().filter((user) => {
-        return this.bombUserList.has(user);
-      }).find(user => {
-        const player = this.bombGameRoomPosition.get(user);
-        const playerPosition = { x: parseFloat(player.x), y: parseFloat(player.y) };
-        const distance = Math.sqrt(Math.pow(myPosition.x - playerPosition.x, 2) + Math.pow(myPosition.y - playerPosition.y, 2));
-        return distance <= this.BOMB_RADIUS && this.bombUserList.get(user) === 0;
-      });
-
-      if (userWithinRadius) {
+      } else {
         this.bombUserList.delete(userWithinRadius);
-        this.deadPlayers.forEach(userId => {
-          this.bombUserList.delete(userId);
-        });
         this.bombUserList.set(clientId, 1);
-
-        this.eventEmitter.emit("bombGame.newBombUsers", this.ROOM_NUMBER, this.getBombUserList());
-        this.logger.fatal(`Updated bombUserList: ${JSON.stringify(Array.from(this.bombUserList.keys()))}`);
-
-        // 1초 뒤에 userWithinRadius의 값을 0으로 설정하는 비동기 작업 수행
-        setTimeout(() => {
-          this.bombUserList.set(clientId, 0);
-        }, this.TAG_HOLD_DURATION_MS);
       }
+
+      this.eventEmitter.emit("bombGame.newBombUsers", this.ROOM_NUMBER, this.getBombUserList());
+      this.logger.error(`Updated bombUserList: ${JSON.stringify(Array.from(this.bombUserList.entries()))}`);
+
+      // 비동기 작업 수행
+      setTimeout(() => {
+        this.bombUserList.set(isBombUser ? userWithinRadius : clientId, 0);
+      }, this.TAG_HOLD_DURATION_MS);
     }
   }
 
