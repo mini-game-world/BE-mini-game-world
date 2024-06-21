@@ -228,6 +228,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private checkBombRooms() {
     // 방에 n 명 이상 존재시 게임시작 신호를 보내줘야해~
     if (this.isBombGameStart()) {
+      this.server.to("0").emit("bombGameReady", 1);
       setTimeout(() => {
         if (this.isBombGameStart()) {
           this.bombGameStart(0);
