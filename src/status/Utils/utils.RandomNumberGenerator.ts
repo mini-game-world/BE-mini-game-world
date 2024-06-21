@@ -21,4 +21,10 @@ export class RandomNumberGenerator {
 
     return randomNumber;
   }
+  restoreNumber(number: number): void {
+    // 숫자가 removedNumbers에 있으면, numbers에 다시 추가하고 removedNumbers에서 제거
+    if (number !== 0) {
+      this.numbers.push(number);
+    }
+  }
 }
