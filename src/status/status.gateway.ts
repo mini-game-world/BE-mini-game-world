@@ -226,8 +226,10 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       .filter(([_, pos]) => pos.room === room)
       .map(([playerId, pos]) => ({ playerId, x: pos.x, y: pos.y, avatar: pos.avatar }));
 
+
     client.emit("currentPlayers", allClientsInRoom);
     client.emit("playingGame", this.PLAYING_ROOM);
+
 
     this.logger.log(`Client connected: ${client.id}`);
     this.logger.log(`Client ${client.id} joined room ${room}`);
