@@ -172,18 +172,44 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   //연결이 되었다면.. 뭔가 행위를 할 수있다 .~!
   handleConnection(client: any, ...args: any[]): any {
+    const room = "0";
+    client.join(room);
+    const x = String(Math.floor(Math.random() * 700) + 50);
+    const y = String(Math.floor(Math.random() * 500) + 50);
+    const randomNum = this.generator.getRandomNumber();
+    this.clientsPosition.set(client.id, { room, x, y, avatar: randomNum, isStun: 0 });
+
+    // 게임방따로 만들기 전까지는 room 0 이 폭탄게임룸임. setBombGamePlayerRoomPosition 이거는 나중에 joinRoom으로 빼면될듯
+    this.statusService.setBombGamePlayerRoomPosition(client.id, { room, x, y, isStun: 0 });
+    // this.server.to(room).emit("nickname", { [client.id]: "bestplayer" });
+    client.to(room).emit("newPlayer", {
+      playerId: client.id,
+      x,
+      y,
+      avatar: randomNum
+    });
+    const allClientsInRoom = Array.from(this.clientsPosition.entries())
+      .filter(([_, pos]) => pos.room === room)
+      .map(([playerId, pos]) => ({ playerId, x: pos.x, y: pos.y, avatar: pos.avatar }));
+
+    this.server.emit("currentPlayers", allClientsInRoom);
+    this.server.emit("playingGame", this.PLAYING_ROOM);
+1
     this.logger.log(`Client connected: ${client.id}`);
+    this.logger.log(`Client ${client.id} joined room ${room}`);
+    this.logger.log(`Number of connected clients in room ${room}: ${allClientsInRoom.length}`);    
   }
 
   handleDisconnect(client: any): any {
+    this.generator.restoreNumber(this.clientsPosition.get(client.id).avatar);
     this.clientsPosition.delete(client.id);
     this.statusService.disconnectPlayUser(client.id);
-
-    const size = this.clientsPosition.size;
-    client.broadcast.emit("disconnected", client.id);
     this.statusService.removeBombGamePlayerRoomPosition(client.id);
+    
+    client.broadcast.emit("disconnected", client.id);
 
     this.logger.log(`Client disconnected: ${client.id}`);
+    const size = this.clientsPosition.size;
     this.logger.log(`Number of connected clients: ${size}`);
   }
 
@@ -238,7 +264,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   private isBombGameStart(): boolean {
-    if (this.statusService.getBombGamePalyerMap().size > this.MIN_PLAYERS_FOR_BOMB_GAME && this.bombGameStartFlag) {
+    if (this.statusService.getBombGamePlayerMap().size > this.MIN_PLAYERS_FOR_BOMB_GAME && this.bombGameStartFlag) {
       return true;
     }
     return false;

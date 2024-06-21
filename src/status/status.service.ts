@@ -41,7 +41,7 @@ export class StatusBombGameService {
     }
   }
 
-  getBombGamePalyerMap() {
+  getBombGamePlayerMap() {
     return this.bombGameRoomPosition
   }
 
