@@ -7,16 +7,15 @@ export class StatusBombGameService {
   }
 
   // bomb 게임방에 입장유저
-  private bombGameRoomPosition: Map<string, { room: string, x: string, y: string, isStun: number }> = new Map();
-  // bomb 게임 플레이 유저
+  private bombGameRoomPosition: Map<string, { room: string, x: string, y: string, avatar: number, isStun: number }> = new Map();
+  // bomb 게임 플레이유저중 생존자들
   private playGameUser: Set<string> = new Set();
-  //
+  // bomb 게임 플레이유저중 죽은자들
   private deadPlayers: string[] = [];
 
   // 폭탄들고 있는 유저
   private bombUserList: Map<string, number> = new Map();
 
-  // 일시적 무적유저
   private playUserCount: number;
 
   private BOMB_USER_PERCENT: number = 0.2;
@@ -28,8 +27,8 @@ export class StatusBombGameService {
 
   private logger: Logger = new Logger("BombGameService");
 
-  setBombGamePlayerRoomPosition(playId: string, { room, x, y, isStun }) {
-    this.bombGameRoomPosition.set(playId, { room: room, x: x, y: y, isStun: isStun });
+  setBombGamePlayerRoomPosition(playId: string, { room, x, y, avatar, isStun }) {
+    this.bombGameRoomPosition.set(playId, { room, x, y, avatar, isStun });
   }
 
   removeBombGamePlayerRoomPosition(playId) {
@@ -49,11 +48,16 @@ export class StatusBombGameService {
     return Array.from(this.playGameUser);
   }
 
-  disconnectPlayUser(deleteUserId: string): void {
-    if (this.playGameUser.has(deleteUserId)) {
-      this.playGameUser.delete(deleteUserId);
-      this.playUserCount = this.playGameUser.size;
+  disconnectBombUser(deleteUserId: string): void {
+    this.bombGameRoomPosition.delete(deleteUserId);
+    this.playGameUser.delete(deleteUserId);
+    this.playUserCount = this.playGameUser.size;
+
+    const index = this.deadPlayers.indexOf(deleteUserId);
+    if (index !== -1) {
+      this.deadPlayers.splice(index, 1);
     }
+    this.bombUserList.delete(deleteUserId);
   }
 
   checkOverlappingUser(clientId: string, x: string, y: string) {

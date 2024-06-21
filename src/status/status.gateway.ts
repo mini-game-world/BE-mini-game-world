@@ -35,42 +35,75 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private bombGameStartFlag = true;
   private generator = new RandomNumberGenerator(1, 5);
 
+  private clientsRoom: Map<string, string> = new Map();
   private clientsPosition: Map<string, { room: string, x: string, y: string, avatar: number, isStun: number }> = new Map();
 
   @SubscribeMessage("joinRoom")
   handleJoinRoom(client: Socket, data: playerJoinRoomDTO): void {
     // 클라이언트가 기존에 속해있던 방에서 떠납니다.
-    const clientData = this.clientsPosition.get(client.id);
-    if (clientData) {
-      const oldRoom = clientData.room;
-      client.leave(oldRoom);
-      client.to(oldRoom).emit("playerLeft", { playerId: client.id });
-      if (oldRoom === '0') this.statusService.removeBombGamePlayerRoomPosition(client.id);
-      this.logger.log(`Client ${client.id} left room ${oldRoom}`);
+    let avatar: number;
+    const oldroom = this.clientsRoom.get(client.id);
+    client.leave(oldroom);
+    client.to(oldroom).emit("playerLeft", { playerId: client.id });
+    switch (oldroom) {
+      case '0':
+        avatar = this.clientsPosition.get(client.id).avatar;
+        this.clientsPosition.delete(client.id);
+        this.statusService.disconnectBombUser(client.id);
+        break;
+      case '1':
+        avatar = this.statusService.getBombGamePlayerMap().get(client.id).avatar;
+        this.statusService.disconnectBombUser(client.id);
+        break;
+      case '2':
+        this.clientsPosition.delete(client.id);
+        break;
+      case '3':
+        this.clientsPosition.delete(client.id);
+        break;
+      default:
+        this.clientsPosition.delete(client.id);
+        break;
     }
 
+
     // 새로운 방에 조인합니다.
+
     const room = data.room;
     client.join(room);
-    const randomNum = this.generator.getRandomNumber();
-    this.clientsPosition.set(client.id, { room, x: data.x, y: data.y, avatar: randomNum, isStun: 0 });
-    this.statusService.setBombGamePlayerRoomPosition(client.id, { room, x: data.x, y: data.y, isStun: 0 });
-    this.server.to(room).emit("nickname", { [client.id]: "bestplayer" });
+    this.clientsRoom.set(client.id, room);
+    const x = String(Math.floor(Math.random() * 700) + 50);
+    const y = String(Math.floor(Math.random() * 500) + 50);
     client.to(room).emit("newPlayer", {
       playerId: client.id,
-      x: data.x,
-      y: data.y,
-      avatar: randomNum
+      x,
+      y,
+      avatar
     });
-    const allClientsInRoom = Array.from(this.clientsPosition.entries())
-      .filter(([_, pos]) => pos.room === room)
-      .map(([playerId, pos]) => ({ playerId, x: pos.x, y: pos.y, avatar: pos.avatar }));
-
+    let allClientsInRoom;
+    switch (room) {
+      case '0':
+        this.clientsPosition.set(client.id, { room, x, y, avatar, isStun: 0 });
+        this.statusService.setBombGamePlayerRoomPosition(client.id, { room, x, y, avatar, isStun: 0 });
+        allClientsInRoom = Array.from(this.clientsPosition.entries())
+          .filter(([_, pos]) => pos.room === room)
+          .map(([playerId, pos]) => ({ playerId, x: pos.x, y: pos.y, avatar: pos.avatar }));
+        client.emit("playingGame", this.PLAYING_ROOM);
+        break;
+      case '1':
+        this.statusService.setBombGamePlayerRoomPosition(client.id, { room, x, y, avatar, isStun: 0 });
+        break;
+      case '2':
+        this.clientsPosition.delete(client.id);
+        break;
+      case '3':
+        this.clientsPosition.delete(client.id);
+        break;
+      default:
+        this.clientsPosition.delete(client.id);
+        break;
+    }
     client.emit("currentPlayers", allClientsInRoom);
-    client.emit("playingGame", this.PLAYING_ROOM);
-
-    this.logger.log(`Client ${client.id} joined room ${room}`);
-    this.logger.log(`Number of connected clients in room ${room}: ${allClientsInRoom.length}`);
   }
 
 
@@ -85,7 +118,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
        * todo : room 종류에 따라서 포지션 업데이트를 해야함
        */
       this.clientsPosition.set(client.id, { room, x: data.x, y: data.y, avatar, isStun: 0 });
-      this.statusService.setBombGamePlayerRoomPosition(client.id, { room, x: data.x, y: data.y, isStun: 0 });
+      this.statusService.setBombGamePlayerRoomPosition(client.id, { room, x: data.x, y: data.y, avatar: avatar, isStun: 0 });
 
       client.to(room).emit("playerMoved", { playerId: client.id, x: data.x, y: data.y });
 
@@ -174,13 +207,14 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   handleConnection(client: any, ...args: any[]): any {
     const room = "0";
     client.join(room);
+    this.clientsRoom.set(client.id, room);
     const x = String(Math.floor(Math.random() * 700) + 50);
     const y = String(Math.floor(Math.random() * 500) + 50);
     const randomNum = this.generator.getRandomNumber();
     this.clientsPosition.set(client.id, { room, x, y, avatar: randomNum, isStun: 0 });
 
     // 게임방따로 만들기 전까지는 room 0 이 폭탄게임룸임. setBombGamePlayerRoomPosition 이거는 나중에 joinRoom으로 빼면될듯
-    this.statusService.setBombGamePlayerRoomPosition(client.id, { room, x, y, isStun: 0 });
+    this.statusService.setBombGamePlayerRoomPosition(client.id, { room, x, y, avatar: randomNum, isStun: 0 });
     // this.server.to(room).emit("nickname", { [client.id]: "bestplayer" });
     client.to(room).emit("newPlayer", {
       playerId: client.id,
@@ -192,21 +226,36 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       .filter(([_, pos]) => pos.room === room)
       .map(([playerId, pos]) => ({ playerId, x: pos.x, y: pos.y, avatar: pos.avatar }));
 
-    this.server.emit("currentPlayers", allClientsInRoom);
-    this.server.emit("playingGame", this.PLAYING_ROOM);
-1
+    client.emit("currentPlayers", allClientsInRoom);
+    client.emit("playingGame", this.PLAYING_ROOM);
+
     this.logger.log(`Client connected: ${client.id}`);
     this.logger.log(`Client ${client.id} joined room ${room}`);
-    this.logger.log(`Number of connected clients in room ${room}: ${allClientsInRoom.length}`);    
+    this.logger.log(`Number of connected clients in room ${room}: ${allClientsInRoom.length}`);
   }
 
   handleDisconnect(client: any): any {
     this.generator.restoreNumber(this.clientsPosition.get(client.id).avatar);
-    this.clientsPosition.delete(client.id);
-    this.statusService.disconnectPlayUser(client.id);
-    this.statusService.removeBombGamePlayerRoomPosition(client.id);
-    
-    client.broadcast.emit("disconnected", client.id);
+    const room = this.clientsRoom.get(client.id);
+    this.server.to(room).emit("disconnected", client.id);
+    switch (room) {
+      case '0':
+        this.clientsPosition.delete(client.id);
+        this.statusService.disconnectBombUser(client.id);
+        break;
+      case '1':
+        this.statusService.disconnectBombUser(client.id);
+        break;
+      case '2':
+        this.clientsPosition.delete(client.id);
+        break;
+      case '3':
+        this.clientsPosition.delete(client.id);
+        break;
+      default:
+        this.clientsPosition.delete(client.id);
+        break;
+    }
 
     this.logger.log(`Client disconnected: ${client.id}`);
     const size = this.clientsPosition.size;
