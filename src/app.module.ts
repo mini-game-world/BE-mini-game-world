@@ -6,9 +6,19 @@ import { StatusBombGameService } from './status/status.service';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { GuestModule } from './guest/guest.module';
+import { MongooseModule } from '@nestjs/mongoose';
+import * as dotenv from 'dotenv';
 
+dotenv.config();
 @Module({
-  imports: [StatusModule, EventEmitterModule.forRoot(), AuthModule, UsersModule, GuestModule],
+  imports: [
+    MongooseModule.forRoot(process.env.MONGO_URI),
+    StatusModule,
+    EventEmitterModule.forRoot(),
+    AuthModule,
+    UsersModule,
+    GuestModule,
+  ],
   providers: [statusGateway,StatusBombGameService]
 })
 export class AppModule {}
