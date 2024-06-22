@@ -7,7 +7,7 @@ export class StatusBombGameService {
   }
 
   // bomb 게임방에 입장유저
-  private bombGameRoomPosition: Map<string, { x: number, y: number, avatar: number, isStun: number }> = new Map();
+  bombGameRoomPosition: Map<string, { x: number, y: number, avatar: number, isStun: number }> = new Map();
   // bomb 게임 플레이유저중 생존자들
   private playGameUser: Set<string> = new Set();
   // bomb 게임 플레이유저중 죽은자들
@@ -23,22 +23,8 @@ export class StatusBombGameService {
   private BOMB_RADIUS: number = 40;
   private TAG_HOLD_DURATION_MS: number = 1500;
   private TIMER_INTERVAL_MS: number = 1000;
-  private ROOM_NUMBER: number = 0;
 
   private logger: Logger = new Logger("BombGameService");
-
-  setBombGamePlayerRoomPosition(playId: string, { x, y, avatar, isStun }) {
-    this.bombGameRoomPosition.set(playId, { x, y, avatar, isStun });
-  }
-
-  removeBombGamePlayerRoomPosition(playId) {
-    if (this.bombGameRoomPosition.has(playId)) {
-      this.bombGameRoomPosition.delete(playId);
-      console.log(`Player ${playId} position removed.`);
-    } else {
-      console.log(`Player ${playId} not found.`);
-    }
-  }
 
   getBombGamePlayerMap() {
     return this.bombGameRoomPosition
@@ -85,7 +71,7 @@ export class StatusBombGameService {
         this.bombUserList.set(userWithinRadius, 1);
 
         //신호 보내기
-        this.eventEmitter.emit("bombGame.newBombUsers", this.ROOM_NUMBER, this.getBombUserList());
+        this.eventEmitter.emit("bombGame.newBombUsers", this.getBombUserList());
         this.logger.error(`Updated bombUserList: ${JSON.stringify(Array.from(this.bombUserList.entries()))}`);
 
         // 1.5초 뒤에 userWithinRadius의 값을 0으로 설정하는 비동기 작업 수행
@@ -109,7 +95,7 @@ export class StatusBombGameService {
         });
         this.bombUserList.set(clientId, 1);
 
-        this.eventEmitter.emit("bombGame.newBombUsers", this.ROOM_NUMBER, this.getBombUserList());
+        this.eventEmitter.emit("bombGame.newBombUsers", this.getBombUserList());
         this.logger.fatal(`Updated bombUserList: ${JSON.stringify(Array.from(this.bombUserList.keys()))}`);
 
         // 1초 뒤에 userWithinRadius의 값을 0으로 설정하는 비동기 작업 수행
@@ -140,22 +126,22 @@ export class StatusBombGameService {
 
     this.logger.warn(` this.getBombUserList()  ==== >  ${this.getBombUserList()}`);
 
-    this.eventEmitter.emit("bombGame.start", this.ROOM_NUMBER, this.getPlayGameUserList(), this.getBombUserList());
+    this.eventEmitter.emit("bombGame.start", this.getPlayGameUserList(), this.getBombUserList());
 
     let remainingTime = this.BOMB_TIME;
     const timerInterval = setInterval(() => {
       remainingTime -= 1;
-      this.eventEmitter.emit("bombGame.timer", this.ROOM_NUMBER, remainingTime);
+      this.eventEmitter.emit("bombGame.timer", remainingTime);
 
       this.logger.debug(`bombTimer ${remainingTime}`);
 
       if (remainingTime <= 0) {
-        this.eventEmitter.emit("bombGame.timer", this.ROOM_NUMBER, remainingTime);
+        this.eventEmitter.emit("bombGame.timer", remainingTime);
 
         const bombUserMapToList: string[] = Array.from(this.bombUserList.keys());
 
         this.logger.log(`bombUserMapToList ${bombUserMapToList}`);
-        this.eventEmitter.emit("bombGame.deadUsers", this.ROOM_NUMBER, bombUserMapToList);
+        this.eventEmitter.emit("bombGame.deadUsers", bombUserMapToList);
 
         this.deleteBombUserInPlayUserList(bombUserMapToList);
         Array.from(this.bombUserList.keys()).forEach(userId => {
@@ -165,7 +151,7 @@ export class StatusBombGameService {
         const checkWinner = this.checkWinner();
         if (checkWinner) {
           this.logger.debug(`checkWinner ${JSON.stringify(checkWinner)}`);
-          this.eventEmitter.emit("bombGame.winner", this.ROOM_NUMBER, checkWinner);
+          this.eventEmitter.emit("bombGame.winner", checkWinner);
           this.deadPlayers = [];
           clearInterval(timerInterval);
           return;
@@ -178,7 +164,7 @@ export class StatusBombGameService {
 
         this.logger.debug(`newBombUser ${newBombUsers}`);
 
-        this.eventEmitter.emit("bombGame.newBombUsers", this.ROOM_NUMBER, newBombUsers);
+        this.eventEmitter.emit("bombGame.newBombUsers", newBombUsers);
 
         remainingTime = this.BOMB_TIME;
       }
