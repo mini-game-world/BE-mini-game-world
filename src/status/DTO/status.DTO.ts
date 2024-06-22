@@ -2,23 +2,23 @@ export class playerJoinRoomDTO {
 
   room: string;
 
-  x: string;
+  x: number;
 
-  y: string;
+  y: number;
 }
 
 
 export class playerMovementDTO {
 
-  x: string;
+  x: number;
 
-  y: string;
+  y: number;
 }
 
 export class playerAttackPositionDTO{
 
-  x:string;
+  x:number;
   
-  y:string;
+  y:number;
 }
 
