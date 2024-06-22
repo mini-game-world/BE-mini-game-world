@@ -35,85 +35,11 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private bombGameStartFlag = true;
   private generator = new RandomNumberGenerator(1, 5);
 
-  private clientsRoom: Map<string, string> = new Map();
-  private clientsPosition: Map<string, { x: number, y: number, avatar: number, isStun: number }> = new Map();
-
-  // @SubscribeMessage("joinRoom")
-  // handleJoinRoom(client: Socket, data: playerJoinRoomDTO): void {
-  //   // 클라이언트가 기존에 속해있던 방에서 떠납니다.
-  //   let avatar: number;
-  //   const oldroom = this.clientsRoom.get(client.id);
-  //   client.leave(oldroom);
-  //   client.to(oldroom).emit("playerLeft", { playerId: client.id });
-  //   switch (oldroom) {
-  //     case '0':
-  //       avatar = this.clientsPosition.get(client.id).avatar;
-  //       this.clientsPosition.delete(client.id);
-  //       this.statusService.disconnectBombUser(client.id);
-  //       break;
-  //     case '1':
-  //       avatar = this.statusService.getBombGamePlayerMap().get(client.id).avatar;
-  //       this.statusService.disconnectBombUser(client.id);
-  //       break;
-  //     case '2':
-  //       this.clientsPosition.delete(client.id);
-  //       break;
-  //     case '3':
-  //       this.clientsPosition.delete(client.id);
-  //       break;
-  //     default:
-  //       this.clientsPosition.delete(client.id);
-  //       break;
-  //   }
-
-
-  //   // 새로운 방에 조인합니다.
-
-  //   const room = data.room;
-  //   client.join(room);
-  //   this.clientsRoom.set(client.id, room);
-  //   const x = String(Math.floor(Math.random() * 700) + 50);
-  //   const y = String(Math.floor(Math.random() * 500) + 50);
-  //   client.to(room).emit("newPlayer", {
-  //     playerId: client.id,
-  //     x,
-  //     y,
-  //     avatar
-  //   });
-  //   let allClientsInRoom;
-  //   switch (room) {
-  //     case '0':
-  //       this.clientsPosition.set(client.id, { room, x, y, avatar, isStun: 0 });
-  //       this.statusService.setBombGamePlayerRoomPosition(client.id, { room, x, y, avatar, isStun: 0 });
-  //       allClientsInRoom = Array.from(this.clientsPosition.entries())
-  //         .filter(([_, pos]) => pos.room === room)
-  //         .map(([playerId, pos]) => ({ playerId, x: pos.x, y: pos.y, avatar: pos.avatar }));
-  //       client.emit("playingGame", this.PLAYING_ROOM);
-  //       break;
-  //     case '1':
-  //       this.statusService.setBombGamePlayerRoomPosition(client.id, { room, x, y, avatar, isStun: 0 });
-  //       break;
-  //     case '2':
-  //       this.clientsPosition.delete(client.id);
-  //       break;
-  //     case '3':
-  //       this.clientsPosition.delete(client.id);
-  //       break;
-  //     default:
-  //       this.clientsPosition.delete(client.id);
-  //       break;
-  //   }
-  //   client.emit("currentPlayers", allClientsInRoom);
-  // }
-
-
   @SubscribeMessage("playerMovement")
   playerPosition(client: Socket, data: playerMovementDTO): void {
-    const room = this.clientsRoom.get(client.id);
-    const avatar = this.clientsPosition.get(client.id).avatar;
-    this.clientsPosition.set(client.id, { x: data.x, y: data.y, avatar, isStun: 0 });
-    this.statusService.setBombGamePlayerRoomPosition(client.id, { x: data.x, y: data.y, avatar, isStun: 0 });
-    client.to(room).emit("playerMoved", { playerId: client.id, x: data.x, y: data.y });
+    const avatar = this.statusService.bombGameRoomPosition.get(client.id).avatar;
+    this.statusService.bombGameRoomPosition.set(client.id, { x: data.x, y: data.y, avatar, isStun: 0 });
+    client.broadcast.emit("playerMoved", { playerId: client.id, x: data.x, y: data.y });
 
     // bombUserList가 비어 있으면 로직을 실행하지 않음
     if (this.statusService.getBombUserList().length === 0) {
@@ -127,7 +53,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   @SubscribeMessage("attackPosition")
   handleAttackPosition(client: Socket, data: playerAttackPositionDTO): void {
-    const clientData = this.clientsPosition.get(client.id);
+    const clientData = this.statusService.bombGameRoomPosition.get(client.id);
     if (!clientData) {
       this.logger.warn(`Client ${client.id} sent attack position but is not in any room`);
       return;
@@ -139,22 +65,21 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       return;
     }
 
-    const room = this.clientsRoom.get(client.id);
-    const logMessage = `attackPosition [${client.id}] x: ${data.x}, y: ${data.y} in room ${room}`;
+    const logMessage = `attackPosition [${client.id}] x: ${data.x}, y: ${data.y}}`;
     this.logger.log(logMessage);
 
-    this.logger.log(`Client ${client.id} attacked position x: ${data.x}, y: ${data.y} in room ${room}`);
+    this.logger.log(`Client ${client.id} attacked position x: ${data.x}, y: ${data.y}`);
 
     // 같은 방의 다른 클라이언트들의 위치와 비교하여 히트된 유저들의 아이디만 추출
-    const hitResults = Array.from(this.clientsPosition.entries())
-      .filter(([playerId, pos]) => this.clientsRoom.get(playerId) === room && playerId !== client.id)
+    const hitResults = Array.from(this.statusService.bombGameRoomPosition.entries())
+      .filter(([playerId]) => playerId !== client.id)
       .filter(([_, pos]) => {
         const distance = Math.sqrt(Math.pow(data.x - pos.x, 2) + Math.pow(data.y - pos.y, 2));
         return distance <= this.HITRADIUS;
       })
       .filter(([playerId]) => {
         // Check if the player is not stunned
-        const playerData = this.clientsPosition.get(playerId);
+        const playerData = this.statusService.bombGameRoomPosition.get(playerId);
         return playerData && playerData.isStun !== 1;
       })
       .map(([playerId]) => playerId);
@@ -163,28 +88,26 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     hitResults.forEach(async (playerId) => {
       const targetClient = this.server.sockets.sockets.get(playerId);
       if (targetClient) {
-        targetClient.emit("attacked", 1);
-
         // 유저의 isStun을 1초간 1로 바꿨다가 다시 0으로 바꾸는 비동기 코드
-        const clientPosition = this.clientsPosition.get(playerId);
+        const clientPosition = this.statusService.bombGameRoomPosition.get(playerId);
         if (clientPosition) {
           clientPosition.isStun = 1;
-          this.clientsPosition.set(playerId, clientPosition);
+          this.statusService.bombGameRoomPosition.set(playerId, clientPosition);
 
           // 1초 후에 isStun을 0으로 변경
           await new Promise(resolve => setTimeout(resolve, this.STUN_DURATION_MS));
 
           clientPosition.isStun = 0;
-          this.clientsPosition.set(playerId, clientPosition);
+          this.statusService.bombGameRoomPosition.set(playerId, clientPosition);
         }
       }
     });
 
     // 히트 결과를 해당 룸의 모든 클라이언트에게 알림
-    this.server.to(room).emit("attackedPlayers", hitResults);
+    this.server.emit("attackedPlayers", hitResults);
 
     // 공격중인 유저를 모두에게 전파(화면에 공격중인것을 표시하기 위해)
-    client.to(room).emit("attackPlayer", client.id);
+    client.broadcast.emit("attackPlayer", client.id);
 
     this.logger.log(`Attack results: ${JSON.stringify(hitResults)}`);
   }
@@ -195,30 +118,22 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   //연결이 되었다면.. 뭔가 행위를 할 수있다 .~!
   handleConnection(client: any, ...args: any[]): any {
-    const room = "0";
-    client.join(room);
-    this.clientsRoom.set(client.id, room);
     const x = Math.floor(Math.random() * 700) + 50;
     const y = Math.floor(Math.random() * 500) + 50;
     const randomNum = this.generator.getRandomNumber();
-    this.clientsPosition.set(client.id, { x, y, avatar: randomNum, isStun: 0 });
+    this.statusService.bombGameRoomPosition.set(client.id, { x, y, avatar: randomNum, isStun: 0 });
 
-    // 게임방따로 만들기 전까지는 room 0 이 폭탄게임룸임. setBombGamePlayerRoomPosition 이거는 나중에 joinRoom으로 빼면될듯
-    this.statusService.setBombGamePlayerRoomPosition(client.id, { x, y, avatar: randomNum, isStun: 0 });
     // this.server.to(room).emit("nickname", { [client.id]: "bestplayer" });
-    client.to(room).emit("newPlayer", {
+    client.broadcast.emit("newPlayer", {
       playerId: client.id,
       x,
       y,
       avatar: randomNum
     });
-    // const allClientsInRoom = Array.from(this.clientsPosition.entries())
-    //   .filter(([_, pos]) => this.clientsRoom.get(client.id) === room)
-    //   .map(([playerId, pos]) => ({ playerId, x: pos.x, y: pos.y, avatar: pos.avatar }));
 
     const allClientsInRoom = {};
 
-    this.clientsPosition.forEach((value, key) => {
+    this.statusService.bombGameRoomPosition.forEach((value, key) => {
       const newPlayer = {
         playerId: key,
         x: value.x,
@@ -231,38 +146,18 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     client.emit("currentPlayers", allClientsInRoom);
     client.emit("playingGame", this.PLAYING_ROOM);
 
-
     this.logger.log(`Client connected: ${client.id}`);
-    this.logger.log(`Client ${client.id} joined room ${room}`);
-    this.logger.log(`Number of connected clients in room ${room}: ${Object.keys(allClientsInRoom).length}`);
+    this.logger.log(`Client ${client.id} joined`);
+    this.logger.log(`Number of connected clients: ${Object.keys(allClientsInRoom).length}`);
   }
 
   handleDisconnect(client: any): any {
-    this.generator.restoreNumber(this.clientsPosition.get(client.id).avatar);
-    const room = this.clientsRoom.get(client.id);
-    this.clientsRoom.delete(client.id);
-    this.server.to(room).emit("playerDisconnected", client.id);
-    switch (room) {
-      case '0':
-        this.clientsPosition.delete(client.id);
-        this.statusService.disconnectBombUser(client.id);
-        break;
-      case '1':
-        this.statusService.disconnectBombUser(client.id);
-        break;
-      case '2':
-        this.clientsPosition.delete(client.id);
-        break;
-      case '3':
-        this.clientsPosition.delete(client.id);
-        break;
-      default:
-        this.clientsPosition.delete(client.id);
-        break;
-    }
+    this.generator.restoreNumber(this.statusService.bombGameRoomPosition.get(client.id).avatar);
+    this.server.emit("playerDisconnected", client.id);
+    this.statusService.disconnectBombUser(client.id);
 
     this.logger.log(`Client disconnected: ${client.id}`);
-    const size = this.clientsPosition.size;
+    const size = this.statusService.bombGameRoomPosition.size;
     this.logger.log(`Number of connected clients: ${size}`);
   }
 
@@ -275,30 +170,30 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   @OnEvent("bombGame.start")
-  handleBombGameStart(room: string, playGameUserList: string[], bombUserList: string[]) {
-    this.server.to(room).emit("startBombGame", playGameUserList);
-    this.server.to(room).emit("bombUsers", bombUserList);
+  handleBombGameStart(playGameUserList: string[], bombUserList: string[]) {
+    this.server.emit("startBombGame", playGameUserList);
+    this.server.emit("bombUsers", bombUserList);
   }
 
   @OnEvent("bombGame.timer")
-  handleBombGameTimer(room: string, remainingTime: number) {
-    this.server.to(room).emit("bombTimer", { remainingTime });
+  handleBombGameTimer(remainingTime: number) {
+    this.server.emit("bombTimer", { remainingTime });
   }
 
   @OnEvent("bombGame.deadUsers")
-  handleBombGameDeadUsers(room: string, bombUserList: string[]) {
-    this.server.to(room).emit("deadUsers", bombUserList);
+  handleBombGameDeadUsers(bombUserList: string[]) {
+    this.server.emit("deadUsers", bombUserList);
   }
 
   @OnEvent("bombGame.newBombUsers")
-  handleBombGameNewBombUsers(room: string, bombUserList: string[]) {
+  handleBombGameNewBombUsers(bombUserList: string[]) {
     this.logger.log(`바뀐 폭탄멤버는 ${bombUserList}`);
-    this.server.to(room).emit("bombUsers", bombUserList);
+    this.server.emit("bombUsers", bombUserList);
   }
 
   @OnEvent("bombGame.winner")
-  handleBombGameWinner(room: string, winner: string[]) {
-    this.server.to(room).emit("gameWinner", winner);
+  handleBombGameWinner(winner: string[]) {
+    this.server.emit("gameWinner", winner);
     this.bombGameStartFlag = true;
     this.PLAYING_ROOM[0] = 0;
     this.server.emit("playingGame", this.PLAYING_ROOM);
@@ -307,7 +202,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private checkBombRooms() {
     // 방에 n 명 이상 존재시 게임시작 신호를 보내줘야해~
     if (this.isBombGameStart()) {
-      this.server.to("0").emit("bombGameReady", 1);
+      this.server.emit("bombGameReady", 1);
       setTimeout(() => {
         if (this.isBombGameStart()) {
           this.bombGameStart();
