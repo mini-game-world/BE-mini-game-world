@@ -113,7 +113,6 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     const avatar = this.clientsPosition.get(client.id).avatar;
     this.clientsPosition.set(client.id, { x: data.x, y: data.y, avatar, isStun: 0 });
     this.statusService.setBombGamePlayerRoomPosition(client.id, { x: data.x, y: data.y, avatar, isStun: 0 });
-    this.logger.log(`${client.id}가 x : ${data.x}, y : ${data.y}로 움직이는 즁`)
     client.to(room).emit("playerMoved", { playerId: client.id, x: data.x, y: data.y });
 
     // bombUserList가 비어 있으면 로직을 실행하지 않음
@@ -228,8 +227,6 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       };
       allClientsInRoom[key] = newPlayer;
     });
-
-    // Socket.EventEmitter('currentPlayers', allClientsInRoom);
 
     client.emit("currentPlayers", allClientsInRoom);
     client.emit("playingGame", this.PLAYING_ROOM);
