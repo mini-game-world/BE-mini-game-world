@@ -119,7 +119,7 @@ export class StatusBombGameService {
     for (const [client, position] of this.bombGameRoomPosition.entries()) {
       clientsInRoom.add(client);
     }
-    this.bombGameRoomPosition.forEach((value, key) => {
+    this.bombGameRoomPosition.forEach((value) => {
       value.isPlay = 1;
     });
     //게임 시작유저 + 폭탄유저 설정
@@ -155,6 +155,9 @@ export class StatusBombGameService {
         if (checkWinner) {
           this.logger.debug(`checkWinner ${JSON.stringify(checkWinner)}`);
           this.eventEmitter.emit("bombGame.winner", checkWinner);
+          this.bombGameRoomPosition.forEach((value) => {
+            value.isPlay = 0;
+          });
           this.deadPlayers = [];
           clearInterval(timerInterval);
           return;

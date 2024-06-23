@@ -33,7 +33,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private STUN_DURATION_MS: number = 1000;
   private PLAYING_ROOM: number = 0;
   private bombGameStartFlag = true;
-  private generator = new RandomNumberGenerator(1, 5);
+  private generator = new RandomNumberGenerator(1, 30);
 
   @SubscribeMessage("playerMovement")
   playerPosition(client: Socket, data: playerMovementDTO): void {
