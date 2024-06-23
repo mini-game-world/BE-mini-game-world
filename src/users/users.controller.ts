@@ -1,8 +1,8 @@
-import { Body, Controller, HttpCode, Logger, Post } from "@nestjs/common";
+import { Body, Controller, HttpCode, Logger, Post, UseFilters } from "@nestjs/common";
 import { UsersService } from "./users.service";
 import { CreatCommonUserDTO } from "./DTO/users.creatDTO";
 import { ResponseDTO } from "../common/response.DTO";
-
+import { HttpExceptionFilter } from '../common/filters/http-exception.filter';
 @Controller("users")
 export class UsersController {
   constructor(private readonly userService: UsersService) {
@@ -11,6 +11,7 @@ export class UsersController {
 
   @Post("register")
   @HttpCode(201)
+  @UseFilters(HttpExceptionFilter)
   async registerUser(@Body() creatUserDTO: CreatCommonUserDTO):Promise<ResponseDTO<{ nickname: string }>> {
     const userName:string = await this.userService.registerUser(creatUserDTO);
 
