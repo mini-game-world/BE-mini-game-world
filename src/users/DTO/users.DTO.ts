@@ -14,7 +14,7 @@ export class CreatCommonUserDTO {
 export class LoginCommonUserDTO {
   @IsString()
   @IsNotEmpty()
-  username: string;
+  nickname: string;
 
   @IsString()
   @IsNotEmpty()

@@ -28,6 +28,7 @@ export class UsersController {
 
   @Post('login')
   @HttpCode(200)
+  @UseFilters(HttpExceptionFilter)
   @UsePipes(new CustomValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
   async login(@Body() loginUserDto: LoginCommonUserDTO): Promise<ResponseDTO<{ access_token: string }>> {
     const token = await this.userService.loginUser(loginUserDto);

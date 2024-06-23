@@ -27,10 +27,11 @@ export class UsersService {
 
 
   async loginUser(loginUserDto: LoginCommonUserDTO): Promise<{ access_token: string }> {
-    const { username, password } = loginUserDto;
-    const user = await this.usersRepository.findUserByName(username);
+    const { nickname, password } = loginUserDto;
+    const user = await this.usersRepository.findUserByName(nickname);
 
     if (!user || !(await this.authService.validatePassword(password, user.password))) {
+      this.logger.error(`user info ${user}`)
       throw new UnauthorizedException("유효하지 않은 접근입니다.");
     }
     const access_token = await this.authService.generateJwtToken(user.nickname);
