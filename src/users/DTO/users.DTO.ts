@@ -10,3 +10,13 @@ export class CreatCommonUserDTO {
   @IsNotEmpty()
   password: string;
 }
+
+export class LoginCommonUserDTO {
+  @IsString()
+  @IsNotEmpty()
+  username: string;
+
+  @IsString()
+  @IsNotEmpty()
+  password: string;
+}
