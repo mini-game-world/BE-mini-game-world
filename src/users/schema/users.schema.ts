@@ -13,7 +13,7 @@ export class User extends Document {
   @Prop({ required: true, unique: true })
   @IsString()
   @IsNotEmpty()
-  name: string;
+  nickname: string;
 
   @Prop({ required: true })
   @IsString()

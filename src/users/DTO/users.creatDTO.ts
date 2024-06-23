@@ -4,7 +4,7 @@ import { IsNotEmpty, IsString } from 'class-validator';
 export class CreatCommonUserDTO {
   @IsString()
   @IsNotEmpty()
-  name: string;
+  nickname: string;
 
   @IsString()
   @IsNotEmpty()
