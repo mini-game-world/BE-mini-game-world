@@ -15,6 +15,10 @@ export class User extends Document {
   @IsNotEmpty()
   nickname: string;
 
+  @Prop()
+  @IsString()
+  randomNicname:string;
+
   @Prop({ required: true })
   @IsString()
   @IsNotEmpty()
