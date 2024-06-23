@@ -7,7 +7,7 @@ export class StatusBombGameService {
   }
 
   // bomb 게임방에 입장유저
-  bombGameRoomPosition: Map<string, { x: number, y: number, avatar: number, isStun: number }> = new Map();
+  bombGameRoomPosition: Map<string, { x: number, y: number, avatar: number, isStun: number, isPlay: number }> = new Map();
   // bomb 게임 플레이유저중 생존자들
   private playGameUser: Set<string> = new Set();
   // bomb 게임 플레이유저중 죽은자들
@@ -19,7 +19,7 @@ export class StatusBombGameService {
   private playUserCount: number;
 
   private BOMB_USER_PERCENT: number = 0.2;
-  private BOMB_TIME: number = 10;
+  private BOMB_TIME: number = 5;
   private BOMB_RADIUS: number = 40;
   private TAG_HOLD_DURATION_MS: number = 1500;
   private TIMER_INTERVAL_MS: number = 1000;
@@ -71,7 +71,7 @@ export class StatusBombGameService {
         this.bombUserList.set(userWithinRadius, 1);
 
         //신호 보내기
-        this.eventEmitter.emit("bombGame.newBombUsers", this.getBombUserList());
+        this.eventEmitter.emit("bombGame.changeBombUser", [userWithinRadius, clientId]);
         this.logger.error(`Updated bombUserList: ${JSON.stringify(Array.from(this.bombUserList.entries()))}`);
 
         // 1.5초 뒤에 userWithinRadius의 값을 0으로 설정하는 비동기 작업 수행
@@ -95,7 +95,7 @@ export class StatusBombGameService {
         });
         this.bombUserList.set(clientId, 1);
 
-        this.eventEmitter.emit("bombGame.newBombUsers", this.getBombUserList());
+        this.eventEmitter.emit("bombGame.changeBombUser", [clientId, userWithinRadius]);
         this.logger.fatal(`Updated bombUserList: ${JSON.stringify(Array.from(this.bombUserList.keys()))}`);
 
         // 1초 뒤에 userWithinRadius의 값을 0으로 설정하는 비동기 작업 수행
@@ -119,6 +119,9 @@ export class StatusBombGameService {
     for (const [client, position] of this.bombGameRoomPosition.entries()) {
       clientsInRoom.add(client);
     }
+    this.bombGameRoomPosition.forEach((value) => {
+      value.isPlay = 1;
+    });
     //게임 시작유저 + 폭탄유저 설정
     this.setPlayGameUser(clientsInRoom);
 
@@ -152,6 +155,9 @@ export class StatusBombGameService {
         if (checkWinner) {
           this.logger.debug(`checkWinner ${JSON.stringify(checkWinner)}`);
           this.eventEmitter.emit("bombGame.winner", checkWinner);
+          this.bombGameRoomPosition.forEach((value) => {
+            value.isPlay = 0;
+          });
           this.deadPlayers = [];
           clearInterval(timerInterval);
           return;
@@ -224,6 +230,9 @@ export class StatusBombGameService {
 
   private checkWinner(): string[] {
     if (this.playUserCount <= 1) {
+      this.bombGameRoomPosition.forEach((value, key) => {
+        value.isPlay = 0;
+      });
       return this.getPlayGameUserList();
     }
     return null;
