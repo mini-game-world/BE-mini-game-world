@@ -202,8 +202,14 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   @OnEvent("bombGame.newBombUsers")
   handleBombGameNewBombUsers(bombUserList: string[]) {
-    this.logger.log(`바뀐 폭탄멤버는 ${bombUserList}`);
+    this.logger.log(`새로운 폭탄멤버는 ${bombUserList}`);
     this.server.emit("bombUsers", bombUserList);
+  }
+
+  @OnEvent("bombGame.changeBombUser")
+  handleBombGameChangeBombUsers(changeBombUserList: string[]) {
+    this.logger.log(`${changeBombUserList[1]}에서 ${changeBombUserList[0]}으로 폭탄이 옮겨졌습니다.`);
+    this.server.emit("changeBombUser", changeBombUserList);
   }
 
   @OnEvent("bombGame.winner")

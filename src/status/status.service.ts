@@ -71,7 +71,7 @@ export class StatusBombGameService {
         this.bombUserList.set(userWithinRadius, 1);
 
         //신호 보내기
-        this.eventEmitter.emit("bombGame.newBombUsers", this.getBombUserList());
+        this.eventEmitter.emit("bombGame.changeBombUser", [userWithinRadius, clientId]);
         this.logger.error(`Updated bombUserList: ${JSON.stringify(Array.from(this.bombUserList.entries()))}`);
 
         // 1.5초 뒤에 userWithinRadius의 값을 0으로 설정하는 비동기 작업 수행
@@ -95,7 +95,7 @@ export class StatusBombGameService {
         });
         this.bombUserList.set(clientId, 1);
 
-        this.eventEmitter.emit("bombGame.newBombUsers", this.getBombUserList());
+        this.eventEmitter.emit("bombGame.changeBombUser", [clientId, userWithinRadius]);
         this.logger.fatal(`Updated bombUserList: ${JSON.stringify(Array.from(this.bombUserList.keys()))}`);
 
         // 1초 뒤에 userWithinRadius의 값을 0으로 설정하는 비동기 작업 수행
