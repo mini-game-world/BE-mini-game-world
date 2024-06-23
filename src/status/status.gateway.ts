@@ -31,14 +31,22 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private HITRADIUS = 40;
 
   private STUN_DURATION_MS: number = 1000;
-  private PLAYING_ROOM: number[] = [0, 0, 0];
+  private PLAYING_ROOM: number = 0;
   private bombGameStartFlag = true;
   private generator = new RandomNumberGenerator(1, 5);
 
   @SubscribeMessage("playerMovement")
   playerPosition(client: Socket, data: playerMovementDTO): void {
-    const avatar = this.statusService.bombGameRoomPosition.get(client.id).avatar;
-    this.statusService.bombGameRoomPosition.set(client.id, { x: data.x, y: data.y, avatar, isStun: 0 });
+    const status = this.statusService.bombGameRoomPosition.get(client.id);
+
+    // x와 y 값만 업데이트
+    if (status) {
+      status.x = data.x;
+      status.y = data.y;
+
+      // 업데이트된 status 객체를 다시 설정
+      this.statusService.bombGameRoomPosition.set(client.id, status);
+    }
     client.broadcast.emit("playerMoved", { playerId: client.id, x: data.x, y: data.y });
 
     // bombUserList가 비어 있으면 로직을 실행하지 않음
@@ -73,6 +81,10 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     // 같은 방의 다른 클라이언트들의 위치와 비교하여 히트된 유저들의 아이디만 추출
     const hitResults = Array.from(this.statusService.bombGameRoomPosition.entries())
       .filter(([playerId]) => playerId !== client.id)
+      .filter(([playerId]) => {
+        // Exclude users in bombUserList
+        return !this.statusService.getBombUserList().includes(playerId);
+      })
       .filter(([_, pos]) => {
         const distance = Math.sqrt(Math.pow(data.x - pos.x, 2) + Math.pow(data.y - pos.y, 2));
         return distance <= this.HITRADIUS;
@@ -121,14 +133,15 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     const x = Math.floor(Math.random() * 700) + 50;
     const y = Math.floor(Math.random() * 500) + 50;
     const randomNum = this.generator.getRandomNumber();
-    this.statusService.bombGameRoomPosition.set(client.id, { x, y, avatar: randomNum, isStun: 0 });
+    this.statusService.bombGameRoomPosition.set(client.id, { x, y, avatar: randomNum, isStun: 0, isPlay: 0 });
 
     // this.server.to(room).emit("nickname", { [client.id]: "bestplayer" });
     client.broadcast.emit("newPlayer", {
       playerId: client.id,
       x,
       y,
-      avatar: randomNum
+      avatar: randomNum,
+      isPlay: 0
     });
 
     const allClientsInRoom = {};
@@ -138,13 +151,14 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         playerId: key,
         x: value.x,
         y: value.y,
-        avatar: value.avatar
+        avatar: value.avatar,
+        isPlay: value.isPlay
       };
       allClientsInRoom[key] = newPlayer;
     });
 
     client.emit("currentPlayers", allClientsInRoom);
-    client.emit("playingGame", this.PLAYING_ROOM);
+    // client.emit("playingGame", this.PLAYING_ROOM);
 
     this.logger.log(`Client connected: ${client.id}`);
     this.logger.log(`Client ${client.id} joined`);
@@ -162,8 +176,9 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   bombGameStart() {
-    this.PLAYING_ROOM[0] = 1;
+    this.PLAYING_ROOM = 1;
     this.bombGameStartFlag = false;
+    this.statusService.bombGameRoomPosition
     this.server.emit("playingGame", this.PLAYING_ROOM);
     this.server.emit("bombGameStart", 1);
     this.statusService.startBombGameWithTimer();
@@ -195,7 +210,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   handleBombGameWinner(winner: string[]) {
     this.server.emit("gameWinner", winner);
     this.bombGameStartFlag = true;
-    this.PLAYING_ROOM[0] = 0;
+    this.PLAYING_ROOM = 0;
     this.server.emit("playingGame", this.PLAYING_ROOM);
   }
 
