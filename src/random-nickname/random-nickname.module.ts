@@ -6,6 +6,7 @@ import { RandomNicknameService } from './random-nickname.service';
 @Module({
   imports: [HttpModule],
   controllers: [RandomNicknameController],
-  providers: [RandomNicknameService]
+  providers: [RandomNicknameService],
+  exports:[RandomNicknameService]
 })
 export class RandomNicknameModule {}

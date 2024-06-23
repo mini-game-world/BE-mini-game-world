@@ -17,7 +17,7 @@ export class User extends Document {
 
   @Prop()
   @IsString()
-  randomNicname:string;
+  randomNickname:string;
 
   @Prop({ required: true })
   @IsString()
