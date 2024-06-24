@@ -1,10 +1,10 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import { RedisCacheService } from '../cache/cache.service';
+import { CacheService } from '../cache/cache.service';
 
 @Injectable()
 export class StatusBombGameService {
-  constructor(private eventEmitter: EventEmitter2, private cacheManager: RedisCacheService) {
+  constructor(private eventEmitter: EventEmitter2, private cacheManager: CacheService) {
   }
 
   // bomb 게임방에 입장유저
