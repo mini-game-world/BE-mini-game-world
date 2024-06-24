@@ -13,12 +13,15 @@ import { StatusBombGameService } from "./status.service";
 import { RandomNumberGenerator } from './Utils/utils.RandomNumberGenerator'
 import { OnEvent } from "@nestjs/event-emitter";
 import { playerAttackPositionDTO, playerJoinRoomDTO, playerMovementDTO } from "./DTO/status.DTO";
+import { RandomNicknameService } from '../random-nickname/random-nickname.service';
 
 @WebSocketGateway({ cors: { origin: "*" } })
 export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   private CHECK_INTERVAL = 5000; // 5초 간격으로 체크
   private MIN_PLAYERS_FOR_BOMB_GAME = 4; // 최소 플레이어 수, 예시로 4명 설정
-  constructor(private readonly statusService: StatusBombGameService) {
+  constructor(private readonly statusService: StatusBombGameService,
+              private readonly randomNicknameService: RandomNicknameService
+  ) {
     setInterval(this.checkBombRooms.bind(this), this.CHECK_INTERVAL);
   }
 
@@ -129,12 +132,13 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   //연결이 되었다면.. 뭔가 행위를 할 수있다 .~!
-  handleConnection(client: any, ...args: any[]): any {
+  async handleConnection(client: any, ...args: any[]) {
     const x = Math.floor(Math.random() * 700) + 50;
     const y = Math.floor(Math.random() * 500) + 50;
     const randomNum = this.generator.getRandomNumber();
-    this.statusService.bombGameRoomPosition.set(client.id, { x, y, avatar: randomNum, isStun: 0, isPlay: 0 });
-
+    const randomNickname = await this.randomNicknameService.getRandomNickname();
+    this.statusService.bombGameRoomPosition.set(client.id, { x, y, avatar: randomNum, nickname: randomNickname, isStun: 0, isPlay: 0, isDead: 0 });
+    console.log(`${JSON.stringify(this.statusService.bombGameRoomPosition.get(client.id))}`)
     // this.server.to(room).emit("nickname", { [client.id]: "bestplayer" });
     client.broadcast.emit("newPlayer", {
       playerId: client.id,
@@ -144,25 +148,14 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       isPlay: 0
     });
 
-    const allClientsInRoom = {};
+    const allClientsInRoomObject = Object.fromEntries(this.statusService.bombGameRoomPosition);
 
-    this.statusService.bombGameRoomPosition.forEach((value, key) => {
-      const newPlayer = {
-        playerId: key,
-        x: value.x,
-        y: value.y,
-        avatar: value.avatar,
-        isPlay: value.isPlay
-      };
-      allClientsInRoom[key] = newPlayer;
-    });
-
-    client.emit("currentPlayers", allClientsInRoom);
+    client.emit("currentPlayers", allClientsInRoomObject);
     // client.emit("playingGame", this.PLAYING_ROOM);
 
     this.logger.log(`Client connected: ${client.id}`);
     this.logger.log(`Client ${client.id} joined`);
-    this.logger.log(`Number of connected clients: ${Object.keys(allClientsInRoom).length}`);
+    this.logger.log(`Number of connected clients: ${this.statusService.bombGameRoomPosition.size}`);
   }
 
   handleDisconnect(client: any): any {
