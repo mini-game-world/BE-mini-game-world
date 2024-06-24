@@ -208,7 +208,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   @OnEvent("bombGame.winner")
   handleBombGameWinner(winner: string[]) {
-    this.server.emit("gameWinner", winner);
+    if (winner) this.server.emit("gameWinner", winner[0]);
     this.bombGameStartFlag = true;
     this.PLAYING_ROOM = 0;
     this.server.emit("playingGame", this.PLAYING_ROOM);
