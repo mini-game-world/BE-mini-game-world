@@ -169,6 +169,7 @@ export class StatusBombGameService {
           this.eventEmitter.emit("bombGame.winner", checkWinner);
           this.bombGameRoomPosition.forEach((value) => {
             value.isPlay = 0;
+            value.isDead = 0;
           });
           this.deadPlayers = [];
           clearInterval(timerInterval);
