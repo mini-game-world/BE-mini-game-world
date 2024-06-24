@@ -1,13 +1,14 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
+import { CacheService } from '../cache/cache.service';
 
 @Injectable()
 export class StatusBombGameService {
-  constructor(private eventEmitter: EventEmitter2) {
+  constructor(private eventEmitter: EventEmitter2, private cacheManager: CacheService) {
   }
 
   // bomb 게임방에 입장유저
-  bombGameRoomPosition: Map<string, { x: number, y: number, avatar: number, isStun: number, isPlay: number }> = new Map();
+  bombGameRoomPosition: Map<string, { x: number, y: number, avatar: number, nickname: string, isStun: number, isPlay: number, isDead: number }> = new Map();
   // bomb 게임 플레이유저중 생존자들
   private playGameUser: Set<string> = new Set();
   // bomb 게임 플레이유저중 죽은자들
@@ -34,7 +35,10 @@ export class StatusBombGameService {
     return Array.from(this.playGameUser);
   }
 
-  disconnectBombUser(deleteUserId: string): void {
+  async disconnectBombUser(deleteUserId: string) {
+    this.cacheManager.set('anay', 'spy');
+    const value = await this.cacheManager.get('anay');
+    console.log(`캐시다~~~~~~~~~~~~~~~~~${value}`);
     this.bombGameRoomPosition.delete(deleteUserId);
     this.playGameUser.delete(deleteUserId);
     this.playUserCount = this.playGameUser.size;
@@ -149,6 +153,14 @@ export class StatusBombGameService {
         this.deleteBombUserInPlayUserList(bombUserMapToList);
         Array.from(this.bombUserList.keys()).forEach(userId => {
           this.deadPlayers.push(userId);
+          // userId에 해당하는 값을 가져옴
+          const player = this.bombGameRoomPosition.get(userId);
+
+          // player가 존재하는 경우 isDead 값을 1로 설정하고 다시 Map에 저장
+          if (player) {
+            player.isDead = 1;
+            this.bombGameRoomPosition.set(userId, player);
+          }
         });
 
         const checkWinner = this.checkWinner();
@@ -157,6 +169,7 @@ export class StatusBombGameService {
           this.eventEmitter.emit("bombGame.winner", checkWinner);
           this.bombGameRoomPosition.forEach((value) => {
             value.isPlay = 0;
+            value.isDead = 0;
           });
           this.deadPlayers = [];
           clearInterval(timerInterval);
