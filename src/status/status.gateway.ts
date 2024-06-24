@@ -145,6 +145,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       x,
       y,
       avatar: randomNum,
+      nickname: randomNickname,
       isPlay: 0
     });
 
