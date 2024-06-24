@@ -52,6 +52,12 @@ jobs:
                   mv /home/ubuntu/BE-mini-game-world/tobe/project.tar.gz /home/ubuntu/BE-mini-game-world/current/project.tar.gz
                   cd /home/ubuntu/BE-mini-game-world/current
                   tar -xvf project.tar.gz
-                  /home/ubuntu/.nvm/versions/node/v20.14.0/bin/npm ci
+                  # NVM 로드 및 npm 설치 경로 설정
+                  export NVM_DIR="$HOME/.nvm"
+                  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+                  [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+                  node -v
+                  npm -v
+                  npm ci
                   pm2 kill
                   pm2 start dist/main.js --name "mini-game-world"
