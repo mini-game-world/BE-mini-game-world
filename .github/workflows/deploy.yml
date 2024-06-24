@@ -12,7 +12,6 @@ jobs:
             - name: Github Repository 파일 불러오기
               uses: actions/checkout@v4
 
-
             - name: NODE 설치
               uses: actions/setup-node@v4
               with:
@@ -41,7 +40,7 @@ jobs:
                 target: /home/ubuntu/BE-mini-game-world/tobe
 
             - name: SSH로 EC2에 접속하기
-              uses: appleboy/ssh-actions@v1.0.3
+              uses: appleboy/ssh-action@v0.1.7
               with:
                 host: ${{ secrets.EC2_HOST }}
                 username: ${{ secrets.EC2_USERNAME }}
