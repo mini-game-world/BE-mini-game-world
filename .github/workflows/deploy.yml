@@ -52,6 +52,6 @@ jobs:
                   mv /home/ubuntu/BE-mini-game-world/tobe/project.tar.gz /home/ubuntu/BE-mini-game-world/current/project.tar.gz
                   cd /home/ubuntu/BE-mini-game-world/current
                   tar -xvf project.tar.gz
-                  npm ci
+                  /home/ubuntu/.nvm/versions/node/v20.14.0/bin/npm ci
                   pm2 kill
                   pm2 start dist/main.js --name "mini-game-world"
