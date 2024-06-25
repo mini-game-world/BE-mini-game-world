@@ -92,7 +92,7 @@ export class StatusGateway
       this.handleAttackPosition(channel, data),
     );
 
-    channel.onDisconnect(() => this.handleDisconnect(channel));
+    channel.on('disconnect', () => this.handleDisconnect(channel));
   }
 
   handleDisconnect(channel: any): any {
