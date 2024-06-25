@@ -194,6 +194,16 @@ export class StatusBombGameService {
     return Array.from(this.bombUserList.keys());
   }
 
+  checkWinner(): string[] {
+    if (this.playUserCount <= 1) {
+      this.bombGameRoomPosition.forEach((value, key) => {
+        value.isPlay = 0;
+      });
+      return this.getPlayGameUserList();
+    }
+    return null;
+  }
+
   private selectRandomBombUsers(): string[] {
     const bombUserCount = Math.max(1, Math.floor(this.playUserCount * this.BOMB_USER_PERCENT));
     const userIds = Array.from(this.playGameUser);
@@ -241,14 +251,5 @@ export class StatusBombGameService {
     this.playUserCount = this.playGameUser.size;
   }
 
-  private checkWinner(): string[] {
-    if (this.playUserCount <= 1) {
-      this.bombGameRoomPosition.forEach((value, key) => {
-        value.isPlay = 0;
-      });
-      return this.getPlayGameUserList();
-    }
-    return null;
-  }
 }
 
