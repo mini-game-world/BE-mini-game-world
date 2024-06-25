@@ -3,6 +3,8 @@ import geckos, { GeckosServer } from '@geckos.io/server';
 import { Server } from 'http';
 import { Inject } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
+import * as https from 'https';
+import * as fs from 'fs';
 
 @Injectable()
 export class GeckosService implements OnModuleInit {
