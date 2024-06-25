@@ -1,3 +1,1 @@
-export default interface UserInterface {
-
-}
+export default interface UserInterface {}
