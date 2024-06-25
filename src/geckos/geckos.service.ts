@@ -19,9 +19,5 @@ export class GeckosService implements OnModuleInit {
       console.log('A user connected:', channel.id);
       // Your connection handling code here
     });
-
-    server.listen(3001, () => {
-      console.log('Server is listening on port 3000');
-    });
   }
 }
