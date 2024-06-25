@@ -14,6 +14,10 @@ import {
 } from './DTO/status.DTO.js';
 import { RandomNicknameService } from '../random-nickname/random-nickname.service.js';
 
+import * as dotenv from 'dotenv';
+
+dotenv.config();
+
 @WebSocketGateway({ cors: { origin: '*' } })
 export class StatusGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
@@ -44,6 +48,7 @@ export class StatusGateway
 
     this.logger.log('Init');
     this.io = geckos();
+    this.io.listen(process.env.UDP_PORT || 3001);
     this.io.addServer(server);
 
     this.io.onConnection((channel: any) => {
