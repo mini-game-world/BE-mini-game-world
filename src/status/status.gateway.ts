@@ -20,7 +20,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private CHECK_INTERVAL = 5000; // 5초 간격으로 체크
   private MIN_PLAYERS_FOR_BOMB_GAME = 4; // 최소 플레이어 수, 예시로 4명 설정
   constructor(private readonly statusService: StatusBombGameService,
-              private readonly randomNicknameService: RandomNicknameService
+    private readonly randomNicknameService: RandomNicknameService
   ) {
     setInterval(this.checkBombRooms.bind(this), this.CHECK_INTERVAL);
   }
@@ -34,8 +34,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private HITRADIUS = 40;
 
   private STUN_DURATION_MS: number = 1000;
-  private PLAYING_ROOM: number = 0;
-  private bombGameStartFlag = true;
+  private bombGameStartFlag = 0;
   private generator = new RandomNumberGenerator(1, 30);
 
   @SubscribeMessage("playerMovement")
@@ -170,10 +169,9 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   bombGameStart() {
-    this.PLAYING_ROOM = 1;
-    this.bombGameStartFlag = false;
+    this.bombGameStartFlag = 1;
     this.statusService.bombGameRoomPosition
-    this.server.emit("playingGame", this.PLAYING_ROOM);
+    this.server.emit("playingGame", this.bombGameStartFlag);
     this.server.emit("bombGameStart", 1);
     this.statusService.startBombGameWithTimer();
   }
@@ -209,9 +207,10 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   @OnEvent("bombGame.winner")
   handleBombGameWinner(winner: string[]) {
     if (winner) this.server.emit("gameWinner", winner[0]);
-    this.bombGameStartFlag = true;
-    this.PLAYING_ROOM = 0;
-    this.server.emit("playingGame", this.PLAYING_ROOM);
+    setTimeout(() => {
+      this.bombGameStartFlag = 0;
+      this.server.emit("playingGame", this.bombGameStartFlag);
+    }, 5000);
   }
 
   private checkBombRooms() {
@@ -227,7 +226,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   private isBombGameStart(): boolean {
-    if (this.statusService.getBombGamePlayerMap().size > this.MIN_PLAYERS_FOR_BOMB_GAME && this.bombGameStartFlag) {
+    if (this.statusService.getBombGamePlayerMap().size > this.MIN_PLAYERS_FOR_BOMB_GAME && !this.bombGameStartFlag) {
       return true;
     }
     return false;
