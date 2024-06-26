@@ -1,4 +1,11 @@
-import { ExceptionFilter, Catch, ArgumentsHost, HttpException, BadRequestException, Logger } from '@nestjs/common';
+import {
+  ExceptionFilter,
+  Catch,
+  ArgumentsHost,
+  HttpException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import { Response } from 'express';
 
 @Catch(HttpException)
@@ -13,11 +20,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const exceptionResponse = exception.getResponse();
 
     let message = exception.message;
-    if (exception instanceof BadRequestException && typeof exceptionResponse === 'object') {
+    if (
+      exception instanceof BadRequestException &&
+      typeof exceptionResponse === 'object'
+    ) {
       message = (exceptionResponse as any).message || exception.message;
     }
 
-    this.logger.error(`HTTP Status: ${status} Error Message: ${message} <=== ${request.method} ${request.url}`);
+    this.logger.error(
+      `HTTP Status: ${status} Error Message: ${message} <=== ${request.method} ${request.url}`,
+    );
 
     response.status(status).json({
       success: false,

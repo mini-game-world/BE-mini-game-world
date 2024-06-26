@@ -1,5 +1,4 @@
 export class playerJoinRoomDTO {
-
   room: string;
 
   x: number;
@@ -7,18 +6,14 @@ export class playerJoinRoomDTO {
   y: number;
 }
 
-
 export class playerMovementDTO {
-
   x: number;
 
   y: number;
 }
 
-export class playerAttackPositionDTO{
+export class playerAttackPositionDTO {
+  x: number;
 
-  x:number;
-  
-  y:number;
+  y: number;
 }
-
