@@ -1,11 +1,28 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module.js';
-import * as process from 'process';
+import * as http from 'http';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  await app.listen(process.env.PORT);
+  const server = http.createServer(app.getHttpAdapter().getInstance());
 
-  console.log(`Application is running on: ${await app.getUrl()}`);
+  const { default: geckos } = await import('@geckos.io/server');
+  const io = geckos({
+    cors: {
+      allowAuthorization: true,
+      origin: '*',
+    },
+  });
+
+  io.addServer(server);
+
+  await app.listen(3000, '0.0.0.0', () => {
+    console.log('NestJS server listening on port 3000');
+  });
+
+  server.listen(3001, () => {
+    console.log('Geckos.io server listening on port 3001');
+  });
 }
+
 bootstrap();
