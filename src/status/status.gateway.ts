@@ -20,8 +20,7 @@ dotenv.config();
 
 @WebSocketGateway({ cors: { origin: '*' } })
 export class StatusGateway
-  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
-{
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   private CHECK_INTERVAL = 5000; // 5초 간격으로 체크
   private MIN_PLAYERS_FOR_BOMB_GAME = 4; // 최소 플레이어 수, 예시로 4명 설정
 
@@ -46,7 +45,7 @@ export class StatusGateway
     const geckosModule = await import('@geckos.io/server');
     const geckos = geckosModule.default;
 
-    this.logger.log('Init');
+    this.logger.log('Init~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
     this.io = geckos();
     this.io.addServer(server);
 
@@ -68,6 +67,14 @@ export class StatusGateway
       isStun: 0,
       isPlay: 0,
       isDead: 0,
+    });
+    channel.broadcast.emit("newPlayer", {
+      playerId: channel.id,
+      x,
+      y,
+      avatar: randomNum,
+      nickname: randomNickname,
+      isPlay: 0
     });
     console.log(
       `${JSON.stringify(this.statusService.bombGameRoomPosition.get(channel.id))}`,
@@ -250,7 +257,7 @@ export class StatusGateway
   private isBombGameStart(): boolean {
     if (
       this.statusService.getBombGamePlayerMap().size >
-        this.MIN_PLAYERS_FOR_BOMB_GAME &&
+      this.MIN_PLAYERS_FOR_BOMB_GAME &&
       this.bombGameStartFlag
     ) {
       return true;
