@@ -19,7 +19,7 @@ export class StatusBombGameService {
 
   private playUserCount: number;
 
-  private BOMB_USER_PERCENT: number = 0.3;
+  private BOMB_USER_PERCENT: number = 0.2;
   private BOMB_TIME: number = 10;
   private BOMB_RADIUS: number = 40;
   private TAG_HOLD_DURATION_MS: number = 1500;
