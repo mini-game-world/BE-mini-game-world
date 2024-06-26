@@ -215,10 +215,12 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   private safeCheckBombRooms() {
     if (this.isCheckingBombRooms) return;
-    
+
     this.isCheckingBombRooms = true;
     this.checkBombRooms().finally(() => {
-      this.isCheckingBombRooms = false;
+      setTimeout(() => {
+        this.isCheckingBombRooms = false;
+      }, 3000); // 1 second delay
     });
   }
 
