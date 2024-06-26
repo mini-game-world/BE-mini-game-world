@@ -17,7 +17,7 @@ import { RandomNicknameService } from '../random-nickname/random-nickname.servic
 
 @WebSocketGateway({ cors: { origin: "*" } })
 export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
-  private CHECK_INTERVAL = 11000; // 5초 간격으로 체크
+  private CHECK_INTERVAL = 15000;
   private MIN_PLAYERS_FOR_BOMB_GAME = 4; // 최소 플레이어 수, 예시로 4명 설정
   private isCheckingBombRooms = false; // checkBombRooms 실행 여부를 추적
   constructor(private readonly statusService: StatusBombGameService,
@@ -32,7 +32,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private logger: Logger = new Logger("Status-Gateway");
 
 
-  private HITRADIUS = 40;
+  private HITRADIUS = 50;
 
   private STUN_DURATION_MS: number = 1000;
   private bombGameStartFlag = 0;
@@ -215,12 +215,10 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   private safeCheckBombRooms() {
     if (this.isCheckingBombRooms) return;
-
+    
     this.isCheckingBombRooms = true;
     this.checkBombRooms().finally(() => {
-      setTimeout(() => {
-        this.isCheckingBombRooms = false;
-      }, 3000); // 1 second delay
+      this.isCheckingBombRooms = false;
     });
   }
 
