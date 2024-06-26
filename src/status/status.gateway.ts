@@ -19,10 +19,11 @@ import { RandomNicknameService } from '../random-nickname/random-nickname.servic
 export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   private CHECK_INTERVAL = 5000; // 5초 간격으로 체크
   private MIN_PLAYERS_FOR_BOMB_GAME = 4; // 최소 플레이어 수, 예시로 4명 설정
+  private isCheckingBombRooms = false; // checkBombRooms 실행 여부를 추적
   constructor(private readonly statusService: StatusBombGameService,
     private readonly randomNicknameService: RandomNicknameService
   ) {
-    setInterval(this.checkBombRooms.bind(this), this.CHECK_INTERVAL);
+    setInterval(this.safeCheckBombRooms.bind(this), this.CHECK_INTERVAL);
   }
 
   @WebSocketServer()
@@ -213,15 +214,30 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     }, 5000);
   }
 
-  private checkBombRooms() {
+  private safeCheckBombRooms() {
+    if (this.isCheckingBombRooms) return;
+    
+    this.isCheckingBombRooms = true;
+    this.checkBombRooms().finally(() => {
+      this.isCheckingBombRooms = false;
+    });
+  }
+
+  private async checkBombRooms() {
     // 방에 n 명 이상 존재시 게임시작 신호를 보내줘야해~
     if (this.isBombGameStart()) {
-      this.server.emit("bombGameReady", 1);
-      setTimeout(() => {
-        if (this.isBombGameStart()) {
-          this.bombGameStart();
+      let countdown = 10;
+      const countdownInterval = setInterval(() => {
+        this.server.emit("bombGameReady", countdown);
+        countdown--;
+
+        if (countdown === 0) {
+          clearInterval(countdownInterval);
+          if (this.isBombGameStart()) {
+            this.bombGameStart();
+          }
         }
-      }, 5000);
+      }, 1000);
     }
   }
 
