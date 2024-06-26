@@ -12,12 +12,12 @@ import { Server, Socket } from "socket.io";
 import { StatusBombGameService } from "./status.service";
 import { RandomNumberGenerator } from './Utils/utils.RandomNumberGenerator'
 import { OnEvent } from "@nestjs/event-emitter";
-import { playerAttackPositionDTO, playerJoinRoomDTO, playerMovementDTO } from "./DTO/status.DTO";
+import { playerAttackPositionDTO, playerMovementDTO } from "./DTO/status.DTO";
 import { RandomNicknameService } from '../random-nickname/random-nickname.service';
 
 @WebSocketGateway({ cors: { origin: "*" } })
 export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
-  private CHECK_INTERVAL = 5000; // 5초 간격으로 체크
+  private CHECK_INTERVAL = 11000; // 5초 간격으로 체크
   private MIN_PLAYERS_FOR_BOMB_GAME = 4; // 최소 플레이어 수, 예시로 4명 설정
   private isCheckingBombRooms = false; // checkBombRooms 실행 여부를 추적
   constructor(private readonly statusService: StatusBombGameService,
@@ -231,7 +231,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         this.server.emit("bombGameReady", countdown);
         countdown--;
 
-        if (countdown === 0) {
+        if (countdown === -1) {
           clearInterval(countdownInterval);
           if (this.isBombGameStart()) {
             this.bombGameStart();
