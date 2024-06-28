@@ -17,7 +17,7 @@ import { RandomNicknameService } from '../random-nickname/random-nickname.servic
 
 @WebSocketGateway({ cors: { origin: "*" } })
 export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
-  private CHECK_INTERVAL = 15000;
+  private CHECK_INTERVAL = 5000;
   private MIN_PLAYERS_FOR_BOMB_GAME = 3; // 최소 플레이어 수, 예시로 4명 설정
   private isCheckingBombRooms = false; // checkBombRooms 실행 여부를 추적
   constructor(private readonly statusService: StatusBombGameService,
