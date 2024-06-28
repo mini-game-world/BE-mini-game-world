@@ -214,6 +214,8 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   private safeCheckBombRooms() {
+    this.logger.error('Checking safe bomb rooms...');
+    this.logger.error(`ischeckingBombRooms의 값은 ${this.isCheckingBombRooms}`);
     if (this.isCheckingBombRooms) {
       return;
     }
