@@ -228,22 +228,30 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   private async checkBombRooms() {
     this.logger.error('Checking bomb rooms...');
-    // 방에 n 명 이상 존재시 게임시작 신호를 보내줘야해~
+  
     if (this.isBombGameStart()) {
       let countdown = 10;
-      const countdownInterval = setInterval(() => {
-        this.server.emit("bombGameReady", countdown);
-        countdown--;
-
-        if (countdown === -1) {
-          clearInterval(countdownInterval);
-          if (this.isBombGameStart()) {
-            this.bombGameStart();
-          } else {
+  
+      // Return a new Promise that resolves when the countdown finishes
+      await new Promise<void>((resolve) => {
+        const countdownInterval = setInterval(() => {
+          this.server.emit("bombGameReady", countdown);
+          if (!this.isBombGameStart()) {
             this.server.emit("bombGameReady", countdown);
+            clearInterval(countdownInterval);
+            return;
           }
-        }
-      }, 1000);
+          countdown--;
+  
+          if (countdown === -1) {
+            clearInterval(countdownInterval);
+            if (this.isBombGameStart()) {
+              this.bombGameStart();
+            }
+            resolve(); // Resolve the Promise here
+          }
+        }, 1000);
+      });
     }
   }
 
