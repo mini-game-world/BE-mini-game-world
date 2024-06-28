@@ -214,7 +214,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   private safeCheckBombRooms() {
-    if (this.isCheckingBombRooms) {
+    if (!this.isCheckingBombRooms) {
       this.logger.error('Already checking bomb rooms, skipping this interval.');
       return;
     }
