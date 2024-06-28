@@ -214,15 +214,20 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   private safeCheckBombRooms() {
-    if (this.isCheckingBombRooms) return;
-    
+    if (this.isCheckingBombRooms) {
+      this.logger.error('Already checking bomb rooms, skipping this interval.');
+      return;
+    }
+    this.logger.error('Starting to check bomb rooms.');
     this.isCheckingBombRooms = true;
     this.checkBombRooms().finally(() => {
+      this.logger.error('Finished checking bomb rooms.');
       this.isCheckingBombRooms = false;
     });
   }
 
   private async checkBombRooms() {
+    this.logger.error('Checking bomb rooms...');
     // 방에 n 명 이상 존재시 게임시작 신호를 보내줘야해~
     if (this.isBombGameStart()) {
       let countdown = 10;
