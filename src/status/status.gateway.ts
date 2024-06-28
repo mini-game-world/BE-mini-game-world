@@ -224,14 +224,17 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   private async checkBombRooms() {
+    this.logger.error('Checking bomb rooms...');
+  
     if (this.isBombGameStart()) {
       let countdown = 10;
+  
       // Return a new Promise that resolves when the countdown finishes
       await new Promise<void>((resolve) => {
         const countdownInterval = setInterval(() => {
           this.server.emit("bombGameReady", countdown);
           if (!this.isBombGameStart()) {
-            this.server.emit("bombGameReady", -1);
+            this.server.emit("bombGameReady", countdown);
             clearInterval(countdownInterval);
             return;
           }
