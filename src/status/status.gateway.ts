@@ -230,6 +230,11 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         this.server.emit("bombGameReady", countdown);
         countdown--;
 
+        if (!this.isBombGameStart()) {
+          clearInterval(countdownInterval);
+          this.server.emit("bombGameReady", -1);
+        } 
+
         if (countdown === -1) {
           clearInterval(countdownInterval);
           if (this.isBombGameStart()) {
