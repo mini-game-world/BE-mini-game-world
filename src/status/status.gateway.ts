@@ -227,13 +227,13 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     if (this.isBombGameStart()) {
       let countdown = 10;
       const countdownInterval = setInterval(() => {
-        this.server.emit("bombGameReady", countdown);
-        countdown--;
-
         if (!this.isBombGameStart()) {
           clearInterval(countdownInterval);
           this.server.emit("bombGameReady", -1);
+          return;
         } 
+        this.server.emit("bombGameReady", countdown);
+        countdown--;
 
         if (countdown === -1) {
           clearInterval(countdownInterval);
