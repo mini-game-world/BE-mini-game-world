@@ -20,7 +20,7 @@ async function bootstrap() {
     console.log('NestJS server listening on port 3000');
   });
 
-  server.listen(3002, () => {
+  server.listen(3001, () => {
     console.log('Geckos.io server listening on port 3001');
   });
 }

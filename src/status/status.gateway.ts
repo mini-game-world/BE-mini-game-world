@@ -47,7 +47,9 @@ export class StatusGateway
     this.logger.log('Init');
     this.io = geckos();
     // this.io.listen(process.env.UDP_PORT || 3001);
-    this.io.addServer(server);
+    this.logger.log(`server는??????????????${server}`);
+    // this.logger.log(`server는??????????????${JSON.stringify(server)}`);
+    // this.io.addServer(server);
 
     this.io.onConnection((channel: any) => {
       this.handleConnection(channel);
@@ -71,6 +73,15 @@ export class StatusGateway
     console.log(
       `${JSON.stringify(this.statusService.bombGameRoomPosition.get(channel.id))}`,
     );
+
+    channel.broadcast.emit("newPlayer", {
+      playerId: channel.id,
+      x,
+      y,
+      avatar: randomNum,
+      nickname: randomNickname,
+      isPlay: 0
+    });
 
     channel.emit(
       'currentPlayers',
@@ -97,7 +108,7 @@ export class StatusGateway
     this.generator.restoreNumber(
       this.statusService.bombGameRoomPosition.get(channel.id).avatar,
     );
-    this.io.emit("playerDisconnected", channel.id);
+    channel.broadcast.emit("playerDisconnected", channel.id);
     this.statusService.disconnectBombUser(channel.id);
 
     this.logger.log(`Client disconnected: ${channel.id}`);
