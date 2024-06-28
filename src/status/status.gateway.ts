@@ -152,7 +152,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     const allClientsInRoomObject = Object.fromEntries(this.statusService.bombGameRoomPosition);
 
     client.emit("currentPlayers", allClientsInRoomObject);
-    // client.emit("playingGame", this.PLAYING_ROOM);
+    client.emit("gamestatus", this.bombGameStartFlag);
 
     this.logger.log(`Client connected: ${client.id}`);
     this.logger.log(`Client ${client.id} joined`);
