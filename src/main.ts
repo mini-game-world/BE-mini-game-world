@@ -23,7 +23,7 @@ async function bootstrap() {
   await app.init(); // app.listen 호출을 제거하고, 대신 app.init()을 호출합니다.
 
   server.listen(3000, '0.0.0.0', () => {
-    console.log('NestJS and Geckos.io server listening on port 3000');
+    console.log('NestJS and Geckos.io server listening on port 4000');
   });
 }
 
