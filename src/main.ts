@@ -22,8 +22,8 @@ async function bootstrap() {
   // NestJS 앱 서버와 Geckos.io 서버가 같은 포트에서 실행되도록 설정합니다.
   await app.init(); // app.listen 호출을 제거하고, 대신 app.init()을 호출합니다.
 
-  server.listen(4000, '0.0.0.0', () => {
-    console.log('NestJS and Geckos.io server listening on port 4000');
+  server.listen(5000, '0.0.0.0', () => {
+    console.log('NestJS and Geckos.io server listening on port 5000');
   });
 }
 
