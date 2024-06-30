@@ -154,7 +154,6 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     client.emit("currentPlayers", allClientsInRoomObject);
     client.emit("gamestatus", this.bombGameStartFlag);
 
-    this.logger.log(`Client connected: ${client.id}`);
     this.logger.log(`Client ${client.id} joined`);
     this.logger.log(`Number of connected clients: ${this.statusService.bombGameRoomPosition.size}`);
   }
@@ -212,8 +211,6 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   private safeCheckBombRooms() {
-    this.logger.error('Checking safe bomb rooms...');
-    this.logger.error(`ischeckingBombRooms의 값은 ${this.isCheckingBombRooms}`);
     if (this.isCheckingBombRooms) {
       return;
     }
@@ -224,8 +221,6 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   private async checkBombRooms() {
-    this.logger.error('Checking bomb rooms...');
-  
     if (this.isBombGameStart()) {
       let countdown = 10;
   
