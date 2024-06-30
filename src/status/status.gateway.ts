@@ -46,7 +46,7 @@ export class StatusGateway
 
     this.logger.log('Init');
     this.io = geckos();
-    // this.io.listen(process.env.UDP_PORT || 3001);
+    this.io.listen(3001);
     this.logger.log(`server는??????????????${server}`);
     // this.logger.log(`server는??????????????${JSON.stringify(server)}`);
     // this.io.addServer(server);
