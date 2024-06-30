@@ -33,6 +33,7 @@ export class ChattingGateway implements OnGatewayInit, OnGatewayConnection, OnGa
   handleMessage(client: any, payload: any) {
     this.logger.log(`chatting payload --->${payload}`);
     this.logger.log(`chatting JSON.stringify(payload)--->${JSON.stringify(payload)}`);
-    this.server.emit('message', { playerId: client.id, data: payload })
+    const message = { [client.id]: payload };
+    this.server.emit('broadcastMessage', message);
   }
 }
