@@ -36,9 +36,9 @@ export class StatusBombGameService {
   }
 
   async disconnectBombUser(deleteUserId: string) {
-    this.cacheManager.set('anay', 'spy');
-    const value = await this.cacheManager.get('anay');
-    console.log(`캐시다~~~~~~~~~~~~~~~~~${value}`);
+    // this.cacheManager.set('anay', 'spy');
+    // const value = await this.cacheManager.get('anay');
+    // console.log(`캐시다~~~~~~~~~~~~~~~~~${value}`);
     this.bombGameRoomPosition.delete(deleteUserId);
     this.playGameUser.delete(deleteUserId);
     this.playUserCount = this.playGameUser.size;
