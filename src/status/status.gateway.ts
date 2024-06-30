@@ -12,13 +12,13 @@ import { Server, Socket } from "socket.io";
 import { StatusBombGameService } from "./status.service";
 import { RandomNumberGenerator } from './Utils/utils.RandomNumberGenerator'
 import { OnEvent } from "@nestjs/event-emitter";
-import { playerAttackPositionDTO, playerJoinRoomDTO, playerMovementDTO } from "./DTO/status.DTO";
+import { playerAttackPositionDTO, playerMovementDTO } from "./DTO/status.DTO";
 import { RandomNicknameService } from '../random-nickname/random-nickname.service';
 
 @WebSocketGateway({ cors: { origin: "*" } })
 export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
-  private CHECK_INTERVAL = 5000; // 5초 간격으로 체크
-  private MIN_PLAYERS_FOR_BOMB_GAME = 4; // 최소 플레이어 수, 예시로 4명 설정
+  private CHECK_INTERVAL = 5000;
+  private MIN_PLAYERS_FOR_BOMB_GAME = 3; // 최소 플레이어 수, 예시로 4명 설정
   private isCheckingBombRooms = false; // checkBombRooms 실행 여부를 추적
   constructor(private readonly statusService: StatusBombGameService,
     private readonly randomNicknameService: RandomNicknameService
@@ -32,7 +32,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private logger: Logger = new Logger("Status-Gateway");
 
 
-  private HITRADIUS = 40;
+  private HITRADIUS = 50;
 
   private STUN_DURATION_MS: number = 1000;
   private bombGameStartFlag = 0;
@@ -152,7 +152,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     const allClientsInRoomObject = Object.fromEntries(this.statusService.bombGameRoomPosition);
 
     client.emit("currentPlayers", allClientsInRoomObject);
-    // client.emit("playingGame", this.PLAYING_ROOM);
+    client.emit("gamestatus", this.bombGameStartFlag);
 
     this.logger.log(`Client connected: ${client.id}`);
     this.logger.log(`Client ${client.id} joined`);
@@ -171,7 +171,6 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   bombGameStart() {
     this.bombGameStartFlag = 1;
-    this.statusService.bombGameRoomPosition
     this.server.emit("playingGame", this.bombGameStartFlag);
     this.server.emit("bombGameStart", 1);
     this.statusService.startBombGameWithTimer();
@@ -215,8 +214,11 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   private safeCheckBombRooms() {
-    if (this.isCheckingBombRooms) return;
-    
+    this.logger.error('Checking safe bomb rooms...');
+    this.logger.error(`ischeckingBombRooms의 값은 ${this.isCheckingBombRooms}`);
+    if (this.isCheckingBombRooms) {
+      return;
+    }
     this.isCheckingBombRooms = true;
     this.checkBombRooms().finally(() => {
       this.isCheckingBombRooms = false;
@@ -224,25 +226,39 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   private async checkBombRooms() {
-    // 방에 n 명 이상 존재시 게임시작 신호를 보내줘야해~
+    this.logger.error('Checking bomb rooms...');
+  
     if (this.isBombGameStart()) {
       let countdown = 10;
-      const countdownInterval = setInterval(() => {
-        this.server.emit("bombGameReady", countdown);
-        countdown--;
-
-        if (countdown === 0) {
-          clearInterval(countdownInterval);
-          if (this.isBombGameStart()) {
-            this.bombGameStart();
+  
+      // Return a new Promise that resolves when the countdown finishes
+      await new Promise<void>((resolve) => {
+        const countdownInterval = setInterval(() => {
+          this.server.emit("bombGameReady", countdown);
+          if (!this.isBombGameStart()) {
+            this.server.emit("bombGameReady", -1);
+            clearInterval(countdownInterval);
+            resolve();
+            return;
           }
-        }
-      }, 1000);
+          countdown--;
+  
+          if (countdown === -1) {
+            clearInterval(countdownInterval);
+            if (this.isBombGameStart()) {
+              this.bombGameStart();
+            } else {
+              this.server.emit("bombGameReady", -1);
+            }
+            resolve(); // Resolve the Promise here
+          }
+        }, 1000);
+      });
     }
   }
 
   private isBombGameStart(): boolean {
-    if (this.statusService.getBombGamePlayerMap().size > this.MIN_PLAYERS_FOR_BOMB_GAME && !this.bombGameStartFlag) {
+    if (this.statusService.getBombGamePlayerMap().size >= this.MIN_PLAYERS_FOR_BOMB_GAME && !this.bombGameStartFlag) {
       return true;
     }
     return false;

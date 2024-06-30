@@ -20,7 +20,7 @@ export class StatusBombGameService {
   private playUserCount: number;
 
   private BOMB_USER_PERCENT: number = 0.2;
-  private BOMB_TIME: number = 5;
+  private BOMB_TIME: number = 10;
   private BOMB_RADIUS: number = 40;
   private TAG_HOLD_DURATION_MS: number = 1500;
   private TIMER_INTERVAL_MS: number = 1000;
@@ -195,7 +195,7 @@ export class StatusBombGameService {
   }
 
   private selectRandomBombUsers(): string[] {
-    const bombUserCount = Math.max(1, Math.floor(this.playUserCount * this.BOMB_USER_PERCENT));
+    const bombUserCount = Math.max(1, Math.ceil(this.playUserCount * this.BOMB_USER_PERCENT));
     const userIds = Array.from(this.playGameUser);
 
     // Fisher-Yates 셔플 알고리즘으로 배열을 무작위로 섞음
