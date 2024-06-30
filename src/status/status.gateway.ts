@@ -172,13 +172,11 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   bombGameStart() {
     this.bombGameStartFlag = 1;
     this.server.emit("playingGame", this.bombGameStartFlag);
-    this.server.emit("bombGameStart", 1);
     this.statusService.startBombGameWithTimer();
   }
 
   @OnEvent("bombGame.start")
   handleBombGameStart(playGameUserList: string[], bombUserList: string[]) {
-    this.server.emit("startBombGame", playGameUserList);
     this.server.emit("bombUsers", bombUserList);
   }
 
