@@ -46,7 +46,9 @@ export class StatusGateway
 
     this.logger.log('Init');
     this.io = geckos();
-    this.io.listen(3001);
+    this.io.listen(3001, {
+      host: '0.0.0.0'  // 모든 네트워크 인터페이스에서 연결을 수락
+    });
     this.logger.log(`server는??????????????${server}`);
     // this.logger.log(`server는??????????????${JSON.stringify(server)}`);
     // this.io.addServer(server);
