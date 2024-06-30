@@ -31,9 +31,13 @@ export class ChattingGateway implements OnGatewayInit, OnGatewayConnection, OnGa
 
   @SubscribeMessage('message')
   handleMessage(client: any, data: requestMessageDTO) {
-    // this.logger.log(`chatting JSON.stringify(data)--->${JSON.stringify(data)}`);
-    this.logger.log(`chatting data--->${data}`);
-
+    if(!data){
+      this.logger.warn(`message was not found.`);
+      return
+    }
+    this.logger.log(`chatting JSON.stringify(data)--->${JSON.stringify(data)}`);
+    this.logger.log(`chatting data)--->${JSON.stringify(data)}`);
     client.broadcast.emit('broadcastMessage', {playerId: client.id, message: data});
   }
 }
+
