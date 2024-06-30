@@ -35,8 +35,7 @@ export class ChattingGateway implements OnGatewayInit, OnGatewayConnection, OnGa
       this.logger.warn(`message was not found.`);
       return
     }
-    this.logger.log(`chatting JSON.stringify(data)--->${JSON.stringify(data)}`);
-    this.logger.log(`chatting data)--->${JSON.stringify(data)}`);
+    this.logger.log(`chatting data--->${data}`);
     client.broadcast.emit('broadcastMessage', {playerId: client.id, message: data});
   }
 }
