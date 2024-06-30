@@ -31,8 +31,9 @@ export class ChattingGateway implements OnGatewayInit, OnGatewayConnection, OnGa
 
   @SubscribeMessage('message')
   handleMessage(client: any, data: requestMessageDTO) {
-    this.logger.log(`chatting JSON.stringify(payload)--->${JSON.stringify(data)}`);
-    const message = { [client.id]: data.message };
-    this.server.emit('broadcastMessage', message);
+    // this.logger.log(`chatting JSON.stringify(data)--->${JSON.stringify(data)}`);
+    this.logger.log(`chatting data--->${data}`);
+
+    client.broadcast.emit('broadcastMessage', {playerId: client.id, message: data});
   }
 }
