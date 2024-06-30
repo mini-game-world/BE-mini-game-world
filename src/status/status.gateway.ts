@@ -154,7 +154,6 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     client.emit("currentPlayers", allClientsInRoomObject);
     client.emit("gamestatus", this.bombGameStartFlag);
 
-    this.logger.log(`Client connected: ${client.id}`);
     this.logger.log(`Client ${client.id} joined`);
     this.logger.log(`Number of connected clients: ${this.statusService.bombGameRoomPosition.size}`);
   }
@@ -172,13 +171,11 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   bombGameStart() {
     this.bombGameStartFlag = 1;
     this.server.emit("playingGame", this.bombGameStartFlag);
-    this.server.emit("bombGameStart", 1);
     this.statusService.startBombGameWithTimer();
   }
 
   @OnEvent("bombGame.start")
   handleBombGameStart(playGameUserList: string[], bombUserList: string[]) {
-    this.server.emit("startBombGame", playGameUserList);
     this.server.emit("bombUsers", bombUserList);
   }
 
@@ -214,8 +211,6 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   private safeCheckBombRooms() {
-    this.logger.error('Checking safe bomb rooms...');
-    this.logger.error(`ischeckingBombRooms의 값은 ${this.isCheckingBombRooms}`);
     if (this.isCheckingBombRooms) {
       return;
     }
@@ -226,8 +221,6 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   private async checkBombRooms() {
-    this.logger.error('Checking bomb rooms...');
-  
     if (this.isBombGameStart()) {
       let countdown = 10;
   
