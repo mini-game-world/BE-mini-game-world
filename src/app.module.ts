@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { RandomNicknameModule } from './random-nickname/random-nickname.module';
 import { CacheModule } from './cache/cache.module';
 import { RedisModule } from './redis/redis.module';
+import { ChattingGateway } from './chatting/chatting.gateway';
 import * as dotenv from "dotenv";
 
 dotenv.config();
@@ -22,6 +23,7 @@ dotenv.config();
     CacheModule,
     RedisModule
   ],
+  providers: [ChattingGateway],
 })
 export class AppModule {
 }
