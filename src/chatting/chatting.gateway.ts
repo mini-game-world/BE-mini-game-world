@@ -18,15 +18,15 @@ export class ChattingGateway implements OnGatewayInit, OnGatewayConnection, OnGa
   server: Server;
 
   afterInit(server: any) {
-    this.logger.log("Init");
+    this.logger.log("Init----Chatting-Gateway");
   }
 
   handleConnection(client: any, ...args: any[]) {
-      throw new Error('Method not implemented.');
+    this.logger.log(`chatting client.id --->${client.id}`);
   }
 
   handleDisconnect(client: any) {
-      throw new Error('Method not implemented.');
+    this.logger.log(`chatting client.id --->${client.id}`);
   }
 
   @SubscribeMessage('message')
