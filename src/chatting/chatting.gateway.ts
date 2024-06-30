@@ -7,7 +7,7 @@ import {
 } from '@nestjs/websockets';
 import { Server } from 'socket.io';
 import { Logger } from '@nestjs/common';
-
+import { requestMessageDTO } from './DTO/chatting.DTO'
 
 @WebSocketGateway({ cors: { origin: "*" } })
 export class ChattingGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect{
@@ -30,10 +30,9 @@ export class ChattingGateway implements OnGatewayInit, OnGatewayConnection, OnGa
   }
 
   @SubscribeMessage('message')
-  handleMessage(client: any, payload: any) {
-    this.logger.log(`chatting payload --->${payload}`);
-    this.logger.log(`chatting JSON.stringify(payload)--->${JSON.stringify(payload)}`);
-    const message = { [client.id]: payload };
+  handleMessage(client: any, data: requestMessageDTO) {
+    this.logger.log(`chatting JSON.stringify(payload)--->${JSON.stringify(data)}`);
+    const message = { [client.id]: data.message };
     this.server.emit('broadcastMessage', message);
   }
 }
