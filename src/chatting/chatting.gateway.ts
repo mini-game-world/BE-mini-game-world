@@ -22,15 +22,17 @@ export class ChattingGateway implements OnGatewayInit, OnGatewayConnection, OnGa
   }
 
   handleConnection(client: any, ...args: any[]) {
-    this.logger.log(`chatting client.id --->${client.id}`);
+    this.logger.log(`chatting connect client.id --->${client.id}`);
   }
 
   handleDisconnect(client: any) {
-    this.logger.log(`chatting client.id --->${client.id}`);
+    this.logger.log(`chatting disconnect client.id --->${client.id}`);
   }
 
   @SubscribeMessage('message')
-  handleMessage(client: any, payload: any): string {
-    return 'Hello world!';
+  handleMessage(client: any, payload: any) {
+    this.logger.log(`chatting payload --->${payload}`);
+    this.logger.log(`chatting JSON.stringify(payload)--->${JSON.stringify(payload)}`);
+    this.server.emit('message', { playerId: client.id, data: payload })
   }
 }
