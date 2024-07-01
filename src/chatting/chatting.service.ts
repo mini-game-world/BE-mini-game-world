@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ChattingRepository } from './chatting.repository';
-import AhoCorasick from 'ahocorasick';
+import { AhoCorasick } from './utils/aho-corasick';
 
 @Injectable()
 export class ChattingService implements OnModuleInit {
