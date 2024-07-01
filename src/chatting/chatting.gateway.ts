@@ -8,6 +8,7 @@ import {
 import { Server } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { requestMessageDTO } from './DTO/chatting.DTO'
+import { ChattingService } from './chatting.service';
 
 @WebSocketGateway({ cors: { origin: "*" } })
 export class ChattingGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect{
@@ -16,6 +17,8 @@ export class ChattingGateway implements OnGatewayInit, OnGatewayConnection, OnGa
 
   @WebSocketServer()
   server: Server;
+
+  constructor(private readonly chattingService: ChattingService) {}
 
   afterInit(server: any) {
     this.logger.log("Init----Chatting-Gateway");
@@ -30,13 +33,15 @@ export class ChattingGateway implements OnGatewayInit, OnGatewayConnection, OnGa
   }
 
   @SubscribeMessage('message')
-  handleMessage(client: any, data: requestMessageDTO) {
+  handleMessage(client: any, data: string) {
     if(!data){
-      this.logger.warn(`message was not found.`);
+      this.logger.log(`message was not found.`);
       return
     }
+    const censoredMessage =  this.chattingService.censorBadWords(data);
     this.logger.log(`chatting data--->${data}`);
-    client.broadcast.emit('broadcastMessage', {playerId: client.id, message: data});
+
+    client.broadcast.emit('broadcastMessage', {playerId: client.id, message: censoredMessage});
   }
 }
 
