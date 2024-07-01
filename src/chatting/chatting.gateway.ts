@@ -38,7 +38,7 @@ export class ChattingGateway implements OnGatewayInit, OnGatewayConnection, OnGa
       this.logger.log(`message was not found.`);
       return
     }
-    const censoredMessage =  this.chattingService.censorBadWords(data);
+    const censoredMessage =   this.chattingService.censorBadWords(data);
     this.logger.log(`chatting data--->${data}`);
 
     client.broadcast.emit('broadcastMessage', {playerId: client.id, message: censoredMessage});

@@ -1,11 +1,13 @@
 import { Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document } from "mongoose";
-import { IsOptional } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
 
 @Schema({ collection: 'badWords' })
 export class BadWord extends Document{
+
   @IsOptional()
+  @IsString()
   word: string;
 }
 
