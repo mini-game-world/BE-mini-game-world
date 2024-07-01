@@ -11,7 +11,8 @@ export class ChattingService implements OnModuleInit {
 
   async onModuleInit() {
     const keywords = await this.chattingRepository.settingBadWord();
-    this.ac = new AhoCorasick(keywords);
+    this.ac = new AhoCorasick();
+    this.ac.build(keywords);
   }
 
   async censorBadWords(text: string): Promise<string> {
@@ -25,14 +26,26 @@ export class ChattingService implements OnModuleInit {
     );
 
     let censoredText = text;
-    badWordsFound.reverse().forEach(({ start, end }) => {
-      const badWordLength = end - start + 1;
-      censoredText =
-        censoredText.slice(0, start) +
-        '*'.repeat(badWordLength) +
-        censoredText.slice(end + 1);
-    });
+    const offsets = Array(text.length).fill(0); // To track adjustments in indices
 
+    badWordsFound.forEach(({ start, end }) => {
+      const badWordLength = end - start + 1;
+      const adjustedStart =
+        start + offsets.slice(0, start).reduce((a, b) => a + b, 0);
+      const adjustedEnd =
+        end + offsets.slice(0, end + 1).reduce((a, b) => a + b, 0);
+
+      censoredText =
+        censoredText.slice(0, adjustedStart) +
+        '*'.repeat(badWordLength) +
+        censoredText.slice(adjustedEnd + 1);
+
+      const adjustment =
+        '*'.repeat(badWordLength).length - (adjustedEnd - adjustedStart + 1);
+      for (let i = start; i <= end; i++) {
+        offsets[i] += adjustment;
+      }
+    });
     return censoredText;
   }
 
@@ -40,13 +53,12 @@ export class ChattingService implements OnModuleInit {
     text: string,
   ): { start: number; end: number; keyword: string }[] {
     const matches = this.ac.search(text);
-    console.log('Matches:', matches);
 
-    return matches.map((match: any) => {
-      const keyword = match[0];
-      const start = match[1];
-      const end = start + keyword.length - 1;
-      return { start, end, keyword };
+    return matches.map((match) => {
+      const { pattern, index } = match;
+      const start = index;
+      const end = start + pattern.length - 1;
+      return { start, end, keyword: pattern };
     });
   }
 }

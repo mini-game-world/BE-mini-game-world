@@ -3,17 +3,18 @@ import {
   OnGatewayDisconnect,
   OnGatewayInit,
   SubscribeMessage,
-  WebSocketGateway, WebSocketServer,
+  WebSocketGateway,
+  WebSocketServer,
 } from '@nestjs/websockets';
 import { Server } from 'socket.io';
 import { Logger } from '@nestjs/common';
-import { requestMessageDTO } from './DTO/chatting.DTO'
 import { ChattingService } from './chatting.service';
 
-@WebSocketGateway({ cors: { origin: "*" } })
-export class ChattingGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect{
-
-  private logger: Logger = new Logger("Chatting-Gateway");
+@WebSocketGateway({ cors: { origin: '*' } })
+export class ChattingGateway
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+{
+  private logger: Logger = new Logger('Chatting-Gateway');
 
   @WebSocketServer()
   server: Server;
@@ -21,7 +22,7 @@ export class ChattingGateway implements OnGatewayInit, OnGatewayConnection, OnGa
   constructor(private readonly chattingService: ChattingService) {}
 
   afterInit(server: any) {
-    this.logger.log("Init----Chatting-Gateway");
+    this.logger.log('Init----Chatting-Gateway');
   }
 
   handleConnection(client: any, ...args: any[]) {
@@ -33,15 +34,17 @@ export class ChattingGateway implements OnGatewayInit, OnGatewayConnection, OnGa
   }
 
   @SubscribeMessage('message')
-  handleMessage(client: any, data: string) {
-    if(!data){
+  async handleMessage(client: any, data: string) {
+    if (!data) {
       this.logger.log(`message was not found.`);
-      return
+      return;
     }
-    const censoredMessage =   this.chattingService.censorBadWords(data);
-    this.logger.log(`chatting data--->${data}`);
+    const censoredMessage = await this.chattingService.censorBadWords(data);
+    this.logger.log(`Chatting message  ---> ${censoredMessage} `);
 
-    client.broadcast.emit('broadcastMessage', {playerId: client.id, message: censoredMessage});
+    this.server.emit('broadcastMessage', {
+      playerId: client.id,
+      message: censoredMessage,
+    });
   }
 }
-
