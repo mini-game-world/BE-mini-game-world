@@ -7,6 +7,7 @@ import { RandomNicknameModule } from '../random-nickname/random-nickname.module'
 
 @Module({
     imports: [EventEmitterModule.forRoot(), CacheModule, RandomNicknameModule],
-    providers: [statusGateway, StatusBombGameService]
+    providers: [statusGateway, StatusBombGameService],
+    exports: [StatusBombGameService],
 })
 export class StatusModule { }
