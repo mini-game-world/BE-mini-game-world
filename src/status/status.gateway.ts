@@ -133,8 +133,8 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   //연결이 되었다면.. 뭔가 행위를 할 수있다 .~!
   async handleConnection(client: any, ...args: any[]) {
-    const x = Math.floor(Math.random() * 700) + 50;
-    const y = Math.floor(Math.random() * 500) + 50;
+    const x = Math.floor(Math.random() * (1760 - 960 + 1)) + 960;
+    const y = Math.floor(Math.random() * (640 - 320 + 1)) + 320;
     const randomNum = this.generator.getRandomNumber();
     const randomNickname = await this.randomNicknameService.getRandomNickname();
     this.statusService.bombGameRoomPosition.set(client.id, { x, y, avatar: randomNum, nickname: randomNickname, isStun: 0, isPlay: 0, isDead: 0 });
@@ -223,7 +223,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private async checkBombRooms() {
     if (this.isBombGameStart()) {
       let countdown = 10;
-  
+
       // Return a new Promise that resolves when the countdown finishes
       await new Promise<void>((resolve) => {
         const countdownInterval = setInterval(() => {
@@ -235,7 +235,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
             return;
           }
           countdown--;
-  
+
           if (countdown === -1) {
             clearInterval(countdownInterval);
             if (this.isBombGameStart()) {
