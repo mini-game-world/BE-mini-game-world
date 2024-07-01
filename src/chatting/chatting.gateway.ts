@@ -9,6 +9,7 @@ import {
 import { Server } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { ChattingService } from './chatting.service';
+import { StatusBombGameService } from '../status/status.service';
 
 @WebSocketGateway({ cors: { origin: '*' } })
 export class ChattingGateway
@@ -19,7 +20,10 @@ export class ChattingGateway
   @WebSocketServer()
   server: Server;
 
-  constructor(private readonly chattingService: ChattingService) {}
+  constructor(
+    private readonly chattingService: ChattingService,
+    private readonly statusBombGameService: StatusBombGameService,
+  ) {}
 
   afterInit(server: any) {
     this.logger.log('Init----Chatting-Gateway');
@@ -40,7 +44,8 @@ export class ChattingGateway
       return;
     }
     const censoredMessage = await this.chattingService.censorBadWords(data);
-    this.logger.log(`Chatting message  ---> ${censoredMessage} `);
+    const nickname = this.statusBombGameService.bombGameRoomPosition.get(client.id).nickname;
+    this.logger.log(`[Chatting message] ${nickname} : ${censoredMessage} `);
 
     this.server.emit('broadcastMessage', {
       playerId: client.id,
