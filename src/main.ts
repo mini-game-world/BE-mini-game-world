@@ -1,9 +1,8 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as process from "process";
-import { CustomValidationPipe } from './common/pipes/custom-validation.pipe'
 import * as fs from 'fs';
-import * as http3 from 'http3';
+import * as quiche from 'quiche';
 import { StatusGateway } from './status/status.gateway';
 
 async function bootstrap() {
@@ -15,10 +14,10 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, { httpsOptions });
   await app.init();
 
-  const server = http3.createServer({
+  const server = quiche.createServer({
     key: httpsOptions.key,
     cert: httpsOptions.cert,
-    allowHTTP1: true, // HTTP/1.1 지원을 위한 설정
+    allowHTTP1: true, // HTTP/1.1 support
   });
 
   const statusGateway = app.get(StatusGateway);
