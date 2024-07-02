@@ -1,18 +1,26 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { SchedulerRegistry } from '@nestjs/schedule';
+import { CronJob } from 'cron';
 import { ChattingRepository } from './chatting.repository';
 import { AhoCorasick } from './utils/aho-corasick';
 
 @Injectable()
 export class ChattingService implements OnModuleInit {
+  constructor(
+    private readonly chattingRepository: ChattingRepository,
+    private readonly schedulerRegistry: SchedulerRegistry,
+  ) {}
+
   private ac: AhoCorasick;
+  private updateScheduled: boolean = true;
   private readonly logger: Logger = new Logger('Chatting - Service');
 
-  constructor(private readonly chattingRepository: ChattingRepository) {}
-
   async onModuleInit() {
-    const keywords = await this.chattingRepository.settingBadWord();
-    this.ac = new AhoCorasick();
-    this.ac.build(keywords);
+    try {
+      await this.initializeAhoCorasick();
+    } catch (error) {
+      this.logger.error('Error during initialization', error);
+    }
   }
 
   async censorBadWords(text: string): Promise<string> {
@@ -49,6 +57,21 @@ export class ChattingService implements OnModuleInit {
     return censoredText;
   }
 
+  scheduleForbiddenWordUpdate() {
+    if (this.updateScheduled) {
+      const job = new CronJob('0 3 * * *', async () => {
+        await this.initializeAhoCorasick();
+        this.updateScheduled = true; // 업데이트 후 플래그 리셋
+        this.logger.log('Forbidden words updated at 3 AM');
+      });
+
+      this.schedulerRegistry.addCronJob('updateForbiddenWords', job);
+      job.start();
+      this.updateScheduled = false; // 업데이트 스케줄링 플래그 설정
+      this.logger.log('Forbidden words update scheduled at 3 AM');
+    }
+  }
+
   private search(
     text: string,
   ): { start: number; end: number; keyword: string }[] {
@@ -60,5 +83,15 @@ export class ChattingService implements OnModuleInit {
       const end = start + pattern.length - 1;
       return { start, end, keyword: pattern };
     });
+  }
+
+  private async initializeAhoCorasick() {
+    try {
+      const keywords = await this.chattingRepository.settingBadWord();
+      this.ac = new AhoCorasick();
+      this.ac.build(keywords);
+    } catch (error) {
+      this.logger.error('Error initializing AhoCorasick', error);
+    }
   }
 }
