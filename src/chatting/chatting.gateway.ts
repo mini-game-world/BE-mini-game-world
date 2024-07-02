@@ -45,11 +45,16 @@ export class ChattingGateway
     }
     const censoredMessage = await this.chattingService.censorBadWords(data);
     const nickname = this.statusBombGameService.bombGameRoomPosition.get(client.id).nickname;
-    this.logger.log(`[Chatting message] ${nickname} : ${censoredMessage} `);
+
+    const sendMessage: string =
+      this.chattingService.checkChattingLen(censoredMessage);
+
+    this.logger.log(`[Chatting message] ${nickname} : ${sendMessage} `);
 
     this.server.emit('broadcastMessage', {
       playerId: client.id,
-      message: censoredMessage,
+      nickname: nickname,
+      message: sendMessage,
     });
   }
 }

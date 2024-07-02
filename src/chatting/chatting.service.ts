@@ -14,6 +14,7 @@ export class ChattingService implements OnModuleInit {
   private ac: AhoCorasick;
   private updateScheduled: boolean = true;
   private readonly logger: Logger = new Logger('Chatting - Service');
+  private readonly CHATTING_MAX_LEN: number = 20;
 
   async onModuleInit() {
     try {
@@ -70,6 +71,13 @@ export class ChattingService implements OnModuleInit {
       this.updateScheduled = false; // 업데이트 스케줄링 플래그 설정
       this.logger.log('Forbidden words update scheduled at 3 AM');
     }
+  }
+
+  checkChattingLen(data: string): string {
+    if (data.length >= this.CHATTING_MAX_LEN) {
+      return data.substring(0, this.CHATTING_MAX_LEN - 1) + '...';
+    }
+    return data;
   }
 
   private search(
