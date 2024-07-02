@@ -1,213 +1,146 @@
-import {
-  OnGatewayConnection,
-  OnGatewayDisconnect,
-  OnGatewayInit,
-  SubscribeMessage,
-  WebSocketGateway,
-  WebSocketServer
-} from "@nestjs/websockets";
-
-import { Logger } from "@nestjs/common";
-import { Server, Socket } from "socket.io";
-import { StatusBombGameService } from "./status.service";
-import { RandomNumberGenerator } from './Utils/utils.RandomNumberGenerator'
+import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from "@nestjs/event-emitter";
-import { playerAttackPositionDTO, playerMovementDTO } from "./DTO/status.DTO";
+import { StatusBombGameService } from "./status.service";
+import { RandomNumberGenerator } from './Utils/utils.RandomNumberGenerator';
 import { RandomNicknameService } from '../random-nickname/random-nickname.service';
+import { playerAttackPositionDTO, playerMovementDTO } from './DTO/status.DTO';
 
-@WebSocketGateway({ cors: { origin: "*" } })
-export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
-  private CHECK_INTERVAL = 5000;
-  private MIN_PLAYERS_FOR_BOMB_GAME = 3; // 최소 플레이어 수, 예시로 4명 설정
-  private isCheckingBombRooms = false; // checkBombRooms 실행 여부를 추적
-  constructor(private readonly statusService: StatusBombGameService,
-    private readonly randomNicknameService: RandomNicknameService
+@Injectable()
+export class StatusGateway {
+  private readonly CHECK_INTERVAL = 5000;
+  private readonly MIN_PLAYERS_FOR_BOMB_GAME = 3;
+  private readonly HITRADIUS = 50;
+  private readonly STUN_DURATION_MS = 1000;
+  private bombGameStartFlag = 0;
+  private readonly logger = new Logger("Status-Gateway");
+  private readonly generator = new RandomNumberGenerator(1, 30);
+  private isCheckingBombRooms = false;
+
+  constructor(
+    private readonly statusService: StatusBombGameService,
+    private readonly randomNicknameService: RandomNicknameService,
   ) {
     setInterval(this.safeCheckBombRooms.bind(this), this.CHECK_INTERVAL);
   }
 
-  @WebSocketServer()
-  server: Server;
+  handleConnection(stream: any) {
+    this.logger.log('Client connected');
+    stream.on('data', (chunk) => {
+      const message = JSON.parse(chunk.toString());
+      this.handleMessage(stream, message);
+    });
+  }
 
-  private logger: Logger = new Logger("Status-Gateway");
+  async handleMessage(stream: any, message: any) {
+    switch (message.type) {
+      case 'connect':
+        await this.handleClientConnect(stream, message);
+        break;
+      case 'playerMovement':
+        this.handlePlayerMovement(stream, message);
+        break;
+      case 'attackPosition':
+        this.handleAttackPosition(stream, message);
+        break;
+      // Add more message handlers as needed
+    }
+  }
 
+  async handleClientConnect(stream: any, message: any) {
+    const clientId = stream.session.localPort.toString();
+    const x = Math.floor(Math.random() * (1760 - 960 + 1)) + 960;
+    const y = Math.floor(Math.random() * (640 - 320 + 1)) + 320;
+    const randomNum = this.generator.getRandomNumber();
+    const randomNickname = await this.randomNicknameService.getRandomNickname();
+    this.statusService.bombGameRoomPosition.set(clientId, { x, y, avatar: randomNum, nickname: randomNickname, isStun: 0, isPlay: 0, isDead: 0 });
+    
+    this.broadcast(stream, JSON.stringify({
+      type: 'newPlayer',
+      playerId: clientId,
+      x,
+      y,
+      avatar: randomNum,
+      nickname: randomNickname,
+      isPlay: 0,
+    }));
 
-  private HITRADIUS = 50;
+    const allClientsInRoomObject = Object.fromEntries(this.statusService.bombGameRoomPosition);
+    stream.write(JSON.stringify({ type: 'currentPlayers', data: allClientsInRoomObject }));
+    stream.write(JSON.stringify({ type: 'gamestatus', data: this.bombGameStartFlag }));
 
-  private STUN_DURATION_MS: number = 1000;
-  private bombGameStartFlag = 0;
-  private generator = new RandomNumberGenerator(1, 30);
+    this.logger.log(`Client ${clientId} joined`);
+    this.logger.log(`Number of connected clients: ${this.statusService.bombGameRoomPosition.size}`);
+  }
 
-  @SubscribeMessage("playerMovement")
-  playerPosition(client: Socket, data: playerMovementDTO): void {
-    const status = this.statusService.bombGameRoomPosition.get(client.id);
+  handlePlayerMovement(stream: any, data: playerMovementDTO): void {
+    const clientId = stream.session.localPort.toString();
+    const status = this.statusService.bombGameRoomPosition.get(clientId);
 
-    // x와 y 값만 업데이트
     if (status) {
       status.x = data.x;
       status.y = data.y;
-
-      // 업데이트된 status 객체를 다시 설정
-      this.statusService.bombGameRoomPosition.set(client.id, status);
+      this.statusService.bombGameRoomPosition.set(clientId, status);
     }
-    client.broadcast.emit("playerMoved", { playerId: client.id, x: data.x, y: data.y });
 
-    // bombUserList가 비어 있으면 로직을 실행하지 않음
-    if (this.statusService.getBombUserList().length === 0) {
+    this.broadcast(stream, JSON.stringify({ type: 'playerMoved', playerId: clientId, x: data.x, y: data.y }));
+
+    if (this.statusService.getBombUserList().length === 0 || this.statusService.checkIsPlayer(clientId)) {
       return;
     }
-    if (this.statusService.checkIsPlayer(client.id)) {
-      return;
-    }
-    this.statusService.checkOverlappingUser(client.id, data.x, data.y);
+
+    this.statusService.checkOverlappingUser(clientId, data.x, data.y);
   }
 
-  @SubscribeMessage("attackPosition")
-  handleAttackPosition(client: Socket, data: playerAttackPositionDTO): void {
-    const clientData = this.statusService.bombGameRoomPosition.get(client.id);
+  handleAttackPosition(stream: any, data: playerAttackPositionDTO): void {
+    const clientId = stream.session.localPort.toString();
+    const clientData = this.statusService.bombGameRoomPosition.get(clientId);
     if (!clientData) {
-      this.logger.warn(`Client ${client.id} sent attack position but is not in any room`);
+      this.logger.warn(`Client ${clientId} sent attack position but is not in any room`);
       return;
     }
 
-    // isStun이 1이면 return
     if (clientData.isStun === 1) {
-      this.logger.warn(`Client ${client.id} is stunned and cannot attack`);
+      this.logger.warn(`Client ${clientId} is stunned and cannot attack`);
       return;
     }
 
-    const logMessage = `attackPosition [${client.id}] x: ${data.x}, y: ${data.y}}`;
+    const logMessage = `attackPosition [${clientId}] x: ${data.x}, y: ${data.y}}`;
     this.logger.log(logMessage);
 
-    this.logger.log(`Client ${client.id} attacked position x: ${data.x}, y: ${data.y}`);
-
-    // 같은 방의 다른 클라이언트들의 위치와 비교하여 히트된 유저들의 아이디만 추출
     const hitResults = Array.from(this.statusService.bombGameRoomPosition.entries())
-      .filter(([playerId]) => playerId !== client.id)
-      .filter(([playerId]) => {
-        // Exclude users in bombUserList
-        return !this.statusService.getBombUserList().includes(playerId);
-      })
+      .filter(([playerId]) => playerId !== clientId)
+      .filter(([playerId]) => !this.statusService.getBombUserList().includes(playerId))
       .filter(([_, pos]) => {
         const distance = Math.sqrt(Math.pow(data.x - pos.x, 2) + Math.pow(data.y - pos.y, 2));
         return distance <= this.HITRADIUS;
       })
       .filter(([playerId]) => {
-        // Check if the player is not stunned
         const playerData = this.statusService.bombGameRoomPosition.get(playerId);
         return playerData && playerData.isStun !== 1;
       })
       .map(([playerId]) => playerId);
 
-    // 히트된 유저들에게 개별적으로 히트 여부 알림
     hitResults.forEach(async (playerId) => {
-      const targetClient = this.server.sockets.sockets.get(playerId);
-      if (targetClient) {
-        // 유저의 isStun을 1초간 1로 바꿨다가 다시 0으로 바꾸는 비동기 코드
-        const clientPosition = this.statusService.bombGameRoomPosition.get(playerId);
-        if (clientPosition) {
-          clientPosition.isStun = 1;
-          this.statusService.bombGameRoomPosition.set(playerId, clientPosition);
+      const clientPosition = this.statusService.bombGameRoomPosition.get(playerId);
+      if (clientPosition) {
+        clientPosition.isStun = 1;
+        this.statusService.bombGameRoomPosition.set(playerId, clientPosition);
 
-          // 1초 후에 isStun을 0으로 변경
-          await new Promise(resolve => setTimeout(resolve, this.STUN_DURATION_MS));
+        await new Promise(resolve => setTimeout(resolve, this.STUN_DURATION_MS));
 
-          clientPosition.isStun = 0;
-          this.statusService.bombGameRoomPosition.set(playerId, clientPosition);
-        }
+        clientPosition.isStun = 0;
+        this.statusService.bombGameRoomPosition.set(playerId, clientPosition);
       }
     });
 
-    // 히트 결과를 해당 룸의 모든 클라이언트에게 알림
-    this.server.emit("attackedPlayers", hitResults);
-
-    // 공격중인 유저를 모두에게 전파(화면에 공격중인것을 표시하기 위해)
-    client.broadcast.emit("attackPlayer", client.id);
+    this.broadcast(stream, JSON.stringify({ type: 'attackedPlayers', data: hitResults }));
+    this.broadcast(stream, JSON.stringify({ type: 'attackPlayer', playerId: clientId }));
 
     this.logger.log(`Attack results: ${JSON.stringify(hitResults)}`);
   }
 
-  afterInit(server: any): any {
-    this.logger.log("Init");
-  }
-
-  //연결이 되었다면.. 뭔가 행위를 할 수있다 .~!
-  async handleConnection(client: any, ...args: any[]) {
-    const x = Math.floor(Math.random() * (1760 - 960 + 1)) + 960;
-    const y = Math.floor(Math.random() * (640 - 320 + 1)) + 320;
-    const randomNum = this.generator.getRandomNumber();
-    const randomNickname = await this.randomNicknameService.getRandomNickname();
-    this.statusService.bombGameRoomPosition.set(client.id, { x, y, avatar: randomNum, nickname: randomNickname, isStun: 0, isPlay: 0, isDead: 0 });
-    console.log(`${JSON.stringify(this.statusService.bombGameRoomPosition.get(client.id))}`)
-    // this.server.to(room).emit("nickname", { [client.id]: "bestplayer" });
-    client.broadcast.emit("newPlayer", {
-      playerId: client.id,
-      x,
-      y,
-      avatar: randomNum,
-      nickname: randomNickname,
-      isPlay: 0
-    });
-
-    const allClientsInRoomObject = Object.fromEntries(this.statusService.bombGameRoomPosition);
-
-    client.emit("currentPlayers", allClientsInRoomObject);
-    client.emit("gamestatus", this.bombGameStartFlag);
-
-    this.logger.log(`Client ${client.id} joined`);
-    this.logger.log(`Number of connected clients: ${this.statusService.bombGameRoomPosition.size}`);
-  }
-
-  handleDisconnect(client: any): any {
-    this.generator.restoreNumber(this.statusService.bombGameRoomPosition.get(client.id).avatar);
-    this.server.emit("playerDisconnected", client.id);
-    this.statusService.disconnectBombUser(client.id);
-
-    this.logger.log(`Client disconnected: ${client.id}`);
-    const size = this.statusService.bombGameRoomPosition.size;
-    this.logger.log(`Number of connected clients: ${size}`);
-  }
-
-  bombGameStart() {
-    this.bombGameStartFlag = 1;
-    this.server.emit("playingGame", this.bombGameStartFlag);
-    this.statusService.startBombGameWithTimer();
-  }
-
-  @OnEvent("bombGame.start")
-  handleBombGameStart(playGameUserList: string[], bombUserList: string[]) {
-    this.server.emit("bombUsers", bombUserList);
-  }
-
-  @OnEvent("bombGame.timer")
-  handleBombGameTimer(remainingTime: number) {
-    this.server.emit("bombTimer", { remainingTime });
-  }
-
-  @OnEvent("bombGame.deadUsers")
-  handleBombGameDeadUsers(bombUserList: string[]) {
-    this.server.emit("deadUsers", bombUserList);
-  }
-
-  @OnEvent("bombGame.newBombUsers")
-  handleBombGameNewBombUsers(bombUserList: string[]) {
-    this.logger.log(`새로운 폭탄멤버는 ${bombUserList}`);
-    this.server.emit("bombUsers", bombUserList);
-  }
-
-  @OnEvent("bombGame.changeBombUser")
-  handleBombGameChangeBombUsers(changeBombUserList: string[]) {
-    this.logger.log(`${changeBombUserList[1]}에서 ${changeBombUserList[0]}으로 폭탄이 옮겨졌습니다.`);
-    this.server.emit("changeBombUser", changeBombUserList);
-  }
-
-  @OnEvent("bombGame.winner")
-  handleBombGameWinner(winner: string[]) {
-    if (winner) this.server.emit("gameWinner", winner[0]);
-    setTimeout(() => {
-      this.bombGameStartFlag = 0;
-      this.server.emit("playingGame", this.bombGameStartFlag);
-    }, 5000);
+  private broadcast(stream: any, message: string) {
+    stream.session.connection.write(message);
   }
 
   private safeCheckBombRooms() {
@@ -223,13 +156,11 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private async checkBombRooms() {
     if (this.isBombGameStart()) {
       let countdown = 10;
-
-      // Return a new Promise that resolves when the countdown finishes
       await new Promise<void>((resolve) => {
         const countdownInterval = setInterval(() => {
-          this.server.emit("bombGameReady", countdown);
+          this.broadcast(null, JSON.stringify({ type: 'bombGameReady', data: countdown }));
           if (!this.isBombGameStart()) {
-            this.server.emit("bombGameReady", -1);
+            this.broadcast(null, JSON.stringify({ type: 'bombGameReady', data: -1 }));
             clearInterval(countdownInterval);
             resolve();
             return;
@@ -241,9 +172,9 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
             if (this.isBombGameStart()) {
               this.bombGameStart();
             } else {
-              this.server.emit("bombGameReady", -1);
+              this.broadcast(null, JSON.stringify({ type: 'bombGameReady', data: -1 }));
             }
-            resolve(); // Resolve the Promise here
+            resolve();
           }
         }, 1000);
       });
@@ -251,9 +182,48 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   private isBombGameStart(): boolean {
-    if (this.statusService.getBombGamePlayerMap().size >= this.MIN_PLAYERS_FOR_BOMB_GAME && !this.bombGameStartFlag) {
-      return true;
-    }
-    return false;
+    return this.statusService.getBombGamePlayerMap().size >= this.MIN_PLAYERS_FOR_BOMB_GAME && !this.bombGameStartFlag;
+  }
+
+  bombGameStart() {
+    this.bombGameStartFlag = 1;
+    this.broadcast(null, JSON.stringify({ type: 'playingGame', data: this.bombGameStartFlag }));
+    this.statusService.startBombGameWithTimer();
+  }
+
+  @OnEvent("bombGame.start")
+  handleBombGameStart(playGameUserList: string[], bombUserList: string[]) {
+    this.broadcast(null, JSON.stringify({ type: 'bombUsers', data: bombUserList }));
+  }
+
+  @OnEvent("bombGame.timer")
+  handleBombGameTimer(remainingTime: number) {
+    this.broadcast(null, JSON.stringify({ type: 'bombTimer', data: { remainingTime } }));
+  }
+
+  @OnEvent("bombGame.deadUsers")
+  handleBombGameDeadUsers(bombUserList: string[]) {
+    this.broadcast(null, JSON.stringify({ type: 'deadUsers', data: bombUserList }));
+  }
+
+  @OnEvent("bombGame.newBombUsers")
+  handleBombGameNewBombUsers(bombUserList: string[]) {
+    this.logger.log(`새로운 폭탄멤버는 ${bombUserList}`);
+    this.broadcast(null, JSON.stringify({ type: 'bombUsers', data: bombUserList }));
+  }
+
+  @OnEvent("bombGame.changeBombUser")
+  handleBombGameChangeBombUsers(changeBombUserList: string[]) {
+    this.logger.log(`${changeBombUserList[1]}에서 ${changeBombUserList[0]}으로 폭탄이 옮겨졌습니다.`);
+    this.broadcast(null, JSON.stringify({ type: 'changeBombUser', data: changeBombUserList }));
+  }
+
+  @OnEvent("bombGame.winner")
+  handleBombGameWinner(winner: string[]) {
+    if (winner) this.broadcast(null, JSON.stringify({ type: 'gameWinner', data: winner[0] }));
+    setTimeout(() => {
+      this.bombGameStartFlag = 0;
+      this.broadcast(null, JSON.stringify({ type: 'playingGame', data: this.bombGameStartFlag }));
+    }, 5000);
   }
 }
