@@ -233,7 +233,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     setTimeout(() => {
       this.bombGameStartFlag = 0;
       this.server.emit("playingGame", this.bombGameStartFlag);
-    }, 5000);
+    }, 15000);
   }
 
   private safeCheckBombRooms() {
