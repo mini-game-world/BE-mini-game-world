@@ -111,7 +111,7 @@ export class StatusBombGameService {
   }
 
 
-  checkIsPlayer(userId: string) {
+  checkIsNotPlayer(userId: string) {
     return !this.playGameUser.has(userId);
   }
 
