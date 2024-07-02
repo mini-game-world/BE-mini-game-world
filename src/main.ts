@@ -1,8 +1,8 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import * as process from "process";
+import * as process from 'process';
 import * as fs from 'fs';
-import * as quiche from 'quiche';
+import * as http3 from 'node-quic';
 import { StatusGateway } from './status/status.gateway';
 
 async function bootstrap() {
@@ -14,10 +14,10 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, { httpsOptions });
   await app.init();
 
-  const server = quiche.createServer({
+  const server = http3.createServer({
     key: httpsOptions.key,
     cert: httpsOptions.cert,
-    allowHTTP1: true, // HTTP/1.1 support
+    allowHTTP1: true, // HTTP/1.1 지원
   });
 
   const statusGateway = app.get(StatusGateway);
@@ -32,7 +32,7 @@ async function bootstrap() {
     });
   });
 
-  server.listen(process.env.PORT, () => {
+  server.listen(parseInt(process.env.PORT), () => {
     console.log(`Application is running on: ${process.env.PORT}`);
   });
 }

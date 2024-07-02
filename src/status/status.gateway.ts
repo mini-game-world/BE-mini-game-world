@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { OnEvent } from "@nestjs/event-emitter";
-import { StatusBombGameService } from "./status.service";
+import { OnEvent } from '@nestjs/event-emitter';
+import { StatusBombGameService } from './status.service';
 import { RandomNumberGenerator } from './Utils/utils.RandomNumberGenerator';
 import { RandomNicknameService } from '../random-nickname/random-nickname.service';
 import { playerAttackPositionDTO, playerMovementDTO } from './DTO/status.DTO';
@@ -12,7 +12,7 @@ export class StatusGateway {
   private readonly HITRADIUS = 50;
   private readonly STUN_DURATION_MS = 1000;
   private bombGameStartFlag = 0;
-  private readonly logger = new Logger("Status-Gateway");
+  private readonly logger = new Logger('Status-Gateway');
   private readonly generator = new RandomNumberGenerator(1, 30);
   private isCheckingBombRooms = false;
 
@@ -47,33 +47,52 @@ export class StatusGateway {
   }
 
   async handleClientConnect(stream: any, message: any) {
-    const clientId = stream.session.localPort.toString();
+    const clientId = stream.session.connection.localPort.toString();
     const x = Math.floor(Math.random() * (1760 - 960 + 1)) + 960;
     const y = Math.floor(Math.random() * (640 - 320 + 1)) + 320;
     const randomNum = this.generator.getRandomNumber();
     const randomNickname = await this.randomNicknameService.getRandomNickname();
-    this.statusService.bombGameRoomPosition.set(clientId, { x, y, avatar: randomNum, nickname: randomNickname, isStun: 0, isPlay: 0, isDead: 0 });
-    
-    this.broadcast(stream, JSON.stringify({
-      type: 'newPlayer',
-      playerId: clientId,
+    this.statusService.bombGameRoomPosition.set(clientId, {
       x,
       y,
       avatar: randomNum,
       nickname: randomNickname,
+      isStun: 0,
       isPlay: 0,
-    }));
+      isDead: 0,
+    });
 
-    const allClientsInRoomObject = Object.fromEntries(this.statusService.bombGameRoomPosition);
-    stream.write(JSON.stringify({ type: 'currentPlayers', data: allClientsInRoomObject }));
-    stream.write(JSON.stringify({ type: 'gamestatus', data: this.bombGameStartFlag }));
+    this.broadcast(
+      stream,
+      JSON.stringify({
+        type: 'newPlayer',
+        playerId: clientId,
+        x,
+        y,
+        avatar: randomNum,
+        nickname: randomNickname,
+        isPlay: 0,
+      }),
+    );
+
+    const allClientsInRoomObject = Object.fromEntries(
+      this.statusService.bombGameRoomPosition,
+    );
+    stream.write(
+      JSON.stringify({ type: 'currentPlayers', data: allClientsInRoomObject }),
+    );
+    stream.write(
+      JSON.stringify({ type: 'gamestatus', data: this.bombGameStartFlag }),
+    );
 
     this.logger.log(`Client ${clientId} joined`);
-    this.logger.log(`Number of connected clients: ${this.statusService.bombGameRoomPosition.size}`);
+    this.logger.log(
+      `Number of connected clients: ${this.statusService.bombGameRoomPosition.size}`,
+    );
   }
 
   handlePlayerMovement(stream: any, data: playerMovementDTO): void {
-    const clientId = stream.session.localPort.toString();
+    const clientId = stream.session.connection.localPort.toString();
     const status = this.statusService.bombGameRoomPosition.get(clientId);
 
     if (status) {
@@ -82,9 +101,15 @@ export class StatusGateway {
       this.statusService.bombGameRoomPosition.set(clientId, status);
     }
 
-    this.broadcast(stream, JSON.stringify({ type: 'playerMoved', playerId: clientId, x: data.x, y: data.y }));
+    this.broadcast(
+      stream,
+      JSON.stringify({ type: 'playerMoved', playerId: clientId, x: data.x, y: data.y }),
+    );
 
-    if (this.statusService.getBombUserList().length === 0 || this.statusService.checkIsPlayer(clientId)) {
+    if (
+      this.statusService.getBombUserList().length === 0 ||
+      this.statusService.checkIsPlayer(clientId)
+    ) {
       return;
     }
 
@@ -92,10 +117,12 @@ export class StatusGateway {
   }
 
   handleAttackPosition(stream: any, data: playerAttackPositionDTO): void {
-    const clientId = stream.session.localPort.toString();
+    const clientId = stream.session.connection.localPort.toString();
     const clientData = this.statusService.bombGameRoomPosition.get(clientId);
     if (!clientData) {
-      this.logger.warn(`Client ${clientId} sent attack position but is not in any room`);
+      this.logger.warn(
+        `Client ${clientId} sent attack position but is not in any room`,
+      );
       return;
     }
 
@@ -107,11 +134,15 @@ export class StatusGateway {
     const logMessage = `attackPosition [${clientId}] x: ${data.x}, y: ${data.y}}`;
     this.logger.log(logMessage);
 
-    const hitResults = Array.from(this.statusService.bombGameRoomPosition.entries())
+    const hitResults = Array.from(
+      this.statusService.bombGameRoomPosition.entries(),
+    )
       .filter(([playerId]) => playerId !== clientId)
       .filter(([playerId]) => !this.statusService.getBombUserList().includes(playerId))
       .filter(([_, pos]) => {
-        const distance = Math.sqrt(Math.pow(data.x - pos.x, 2) + Math.pow(data.y - pos.y, 2));
+        const distance = Math.sqrt(
+          Math.pow(data.x - pos.x, 2) + Math.pow(data.y - pos.y, 2),
+        );
         return distance <= this.HITRADIUS;
       })
       .filter(([playerId]) => {
@@ -126,21 +157,44 @@ export class StatusGateway {
         clientPosition.isStun = 1;
         this.statusService.bombGameRoomPosition.set(playerId, clientPosition);
 
-        await new Promise(resolve => setTimeout(resolve, this.STUN_DURATION_MS));
+        await new Promise((resolve) =>
+          setTimeout(resolve, this.STUN_DURATION_MS),
+        );
 
         clientPosition.isStun = 0;
         this.statusService.bombGameRoomPosition.set(playerId, clientPosition);
       }
     });
 
-    this.broadcast(stream, JSON.stringify({ type: 'attackedPlayers', data: hitResults }));
-    this.broadcast(stream, JSON.stringify({ type: 'attackPlayer', playerId: clientId }));
+    this.broadcast(
+      stream,
+      JSON.stringify({ type: 'attackedPlayers', data: hitResults }),
+    );
+    this.broadcast(
+      stream,
+      JSON.stringify({ type: 'attackPlayer', playerId: clientId }),
+    );
 
     this.logger.log(`Attack results: ${JSON.stringify(hitResults)}`);
   }
 
   private broadcast(stream: any, message: string) {
-    stream.session.connection.write(message);
+    if (stream) {
+      stream.session.connection.write(message);
+    } else {
+      // Broadcast to all sessions
+      this.statusService.bombGameRoomPosition.forEach((_, clientId) => {
+        const clientStream = this.getClientStream(clientId);
+        if (clientStream) {
+          clientStream.session.connection.write(message);
+        }
+      });
+    }
+  }
+
+  private getClientStream(clientId: string): any {
+    // Implement a method to get the client stream by clientId
+    // You might need to keep a map of clientId to stream
   }
 
   private safeCheckBombRooms() {
@@ -158,9 +212,15 @@ export class StatusGateway {
       let countdown = 10;
       await new Promise<void>((resolve) => {
         const countdownInterval = setInterval(() => {
-          this.broadcast(null, JSON.stringify({ type: 'bombGameReady', data: countdown }));
+          this.broadcast(
+            null,
+            JSON.stringify({ type: 'bombGameReady', data: countdown }),
+          );
           if (!this.isBombGameStart()) {
-            this.broadcast(null, JSON.stringify({ type: 'bombGameReady', data: -1 }));
+            this.broadcast(
+              null,
+              JSON.stringify({ type: 'bombGameReady', data: -1 }),
+            );
             clearInterval(countdownInterval);
             resolve();
             return;
@@ -172,7 +232,10 @@ export class StatusGateway {
             if (this.isBombGameStart()) {
               this.bombGameStart();
             } else {
-              this.broadcast(null, JSON.stringify({ type: 'bombGameReady', data: -1 }));
+              this.broadcast(
+                null,
+                JSON.stringify({ type: 'bombGameReady', data: -1 }),
+              );
             }
             resolve();
           }
@@ -182,48 +245,66 @@ export class StatusGateway {
   }
 
   private isBombGameStart(): boolean {
-    return this.statusService.getBombGamePlayerMap().size >= this.MIN_PLAYERS_FOR_BOMB_GAME && !this.bombGameStartFlag;
+    return (
+      this.statusService.getBombGamePlayerMap().size >=
+        this.MIN_PLAYERS_FOR_BOMB_GAME && !this.bombGameStartFlag
+    );
   }
 
   bombGameStart() {
     this.bombGameStartFlag = 1;
-    this.broadcast(null, JSON.stringify({ type: 'playingGame', data: this.bombGameStartFlag }));
+    this.broadcast(
+      null,
+      JSON.stringify({ type: 'playingGame', data: this.bombGameStartFlag }),
+    );
     this.statusService.startBombGameWithTimer();
   }
 
-  @OnEvent("bombGame.start")
+  @OnEvent('bombGame.start')
   handleBombGameStart(playGameUserList: string[], bombUserList: string[]) {
     this.broadcast(null, JSON.stringify({ type: 'bombUsers', data: bombUserList }));
   }
 
-  @OnEvent("bombGame.timer")
+  @OnEvent('bombGame.timer')
   handleBombGameTimer(remainingTime: number) {
-    this.broadcast(null, JSON.stringify({ type: 'bombTimer', data: { remainingTime } }));
+    this.broadcast(
+      null,
+      JSON.stringify({ type: 'bombTimer', data: { remainingTime } }),
+    );
   }
 
-  @OnEvent("bombGame.deadUsers")
+  @OnEvent('bombGame.deadUsers')
   handleBombGameDeadUsers(bombUserList: string[]) {
     this.broadcast(null, JSON.stringify({ type: 'deadUsers', data: bombUserList }));
   }
 
-  @OnEvent("bombGame.newBombUsers")
+  @OnEvent('bombGame.newBombUsers')
   handleBombGameNewBombUsers(bombUserList: string[]) {
     this.logger.log(`새로운 폭탄멤버는 ${bombUserList}`);
     this.broadcast(null, JSON.stringify({ type: 'bombUsers', data: bombUserList }));
   }
 
-  @OnEvent("bombGame.changeBombUser")
+  @OnEvent('bombGame.changeBombUser')
   handleBombGameChangeBombUsers(changeBombUserList: string[]) {
-    this.logger.log(`${changeBombUserList[1]}에서 ${changeBombUserList[0]}으로 폭탄이 옮겨졌습니다.`);
-    this.broadcast(null, JSON.stringify({ type: 'changeBombUser', data: changeBombUserList }));
+    this.logger.log(
+      `${changeBombUserList[1]}에서 ${changeBombUserList[0]}으로 폭탄이 옮겨졌습니다.`,
+    );
+    this.broadcast(
+      null,
+      JSON.stringify({ type: 'changeBombUser', data: changeBombUserList }),
+    );
   }
 
-  @OnEvent("bombGame.winner")
+  @OnEvent('bombGame.winner')
   handleBombGameWinner(winner: string[]) {
-    if (winner) this.broadcast(null, JSON.stringify({ type: 'gameWinner', data: winner[0] }));
+    if (winner)
+      this.broadcast(null, JSON.stringify({ type: 'gameWinner', data: winner[0] }));
     setTimeout(() => {
       this.bombGameStartFlag = 0;
-      this.broadcast(null, JSON.stringify({ type: 'playingGame', data: this.bombGameStartFlag }));
+      this.broadcast(
+        null,
+        JSON.stringify({ type: 'playingGame', data: this.bombGameStartFlag }),
+      );
     }, 5000);
   }
 }
