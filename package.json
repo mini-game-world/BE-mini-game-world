@@ -57,6 +57,7 @@
     "@types/express": "^4.17.17",
     "@types/ioredis": "^5.0.0",
     "@types/jest": "^29.5.2",
+    "@types/js-priority-queue": "^0.0.9",
     "@types/node": "^20.3.1",
     "@types/supertest": "^6.0.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",

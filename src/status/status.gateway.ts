@@ -14,14 +14,17 @@ import { RandomNumberGenerator } from './Utils/utils.RandomNumberGenerator'
 import { OnEvent } from "@nestjs/event-emitter";
 import { playerAttackPositionDTO, playerMovementDTO } from "./DTO/status.DTO";
 import { RandomNicknameService } from '../random-nickname/random-nickname.service';
+import { RankService } from './rank.service';
 
 @WebSocketGateway({ cors: { origin: "*" } })
 export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   private CHECK_INTERVAL = 5000;
   private MIN_PLAYERS_FOR_BOMB_GAME = 3; // 최소 플레이어 수, 예시로 4명 설정
   private isCheckingBombRooms = false; // checkBombRooms 실행 여부를 추적
-  constructor(private readonly statusService: StatusBombGameService,
-    private readonly randomNicknameService: RandomNicknameService
+  constructor(
+    private readonly statusService: StatusBombGameService,
+    private readonly randomNicknameService: RandomNicknameService,
+    private readonly rankService: RankService,
   ) {
     setInterval(this.safeCheckBombRooms.bind(this), this.CHECK_INTERVAL);
   }
@@ -32,7 +35,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private logger: Logger = new Logger("Status-Gateway");
 
 
-  private HITRADIUS = 50;
+  private HITRADIUS = 100;
 
   private STUN_DURATION_MS: number = 1000;
   private bombGameStartFlag = 0;
@@ -125,6 +128,15 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     client.broadcast.emit("attackPlayer", client.id);
 
     this.logger.log(`Attack results: ${JSON.stringify(hitResults)}`);
+
+    //맞은 정보 업데이트 시킴
+    hitResults.forEach(async (playerId) => {
+      this.rankService.processEvent({
+        playerId: playerId,
+        eventType: this.rankService.HIT,
+      });
+      this.logger.log(`hitResults playerId: ${playerId}`);
+    });
   }
 
   afterInit(server: any): any {
@@ -198,12 +210,26 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   @OnEvent("bombGame.changeBombUser")
   handleBombGameChangeBombUsers(changeBombUserList: string[]) {
     this.logger.log(`${changeBombUserList[1]}에서 ${changeBombUserList[0]}으로 폭탄이 옮겨졌습니다.`);
+    //폭탄 옮긴유저 카운트
+    this.rankService.processEvent({playerId:changeBombUserList[1],eventType:this.rankService.BOMB})
     this.server.emit("changeBombUser", changeBombUserList);
   }
 
   @OnEvent("bombGame.winner")
   handleBombGameWinner(winner: string[]) {
-    if (winner) this.server.emit("gameWinner", winner[0]);
+    if (winner) {
+      const gameWinner = winner[0];
+      const bombMaster = this.rankService.getMVP(this.rankService.BOMB);
+      const punchingBag = this.rankService.getMVP(this.rankService.HIT);
+      const result = {
+        gameWinner: gameWinner,
+        BombMaster: bombMaster || { playerId: '', count: 0 },
+        PunchingBag: punchingBag || { playerId: '', count: 0 },
+      };
+      this.logger.log("gameResult",result);
+      this.rankService.gameEnd();
+      this.server.emit("gameWinner", result);
+    }
     setTimeout(() => {
       this.bombGameStartFlag = 0;
       this.server.emit("playingGame", this.bombGameStartFlag);
