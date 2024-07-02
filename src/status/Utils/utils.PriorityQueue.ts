@@ -35,7 +35,16 @@ export class PriorityQueue<T> {
       this.heap[index] = item;
       this.bubbleUp(index);
       this.bubbleDown(index);
+    } else {
+      this.push(item); // 값이 존재하지 않으면 새로 추가
     }
+  }
+
+  public printHeap(): void {
+    console.log('Current state of heap:');
+    this.heap.forEach((item, index) => {
+      console.log(`Index ${index}: ${JSON.stringify(item)}`);
+    });
   }
 
   private bubbleUp(index?: number): void {

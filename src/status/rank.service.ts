@@ -10,10 +10,10 @@ interface PlayerStats {
 export class RankService {
   constructor() {
     this.hitsQueue = new PriorityQueue<{ playerId: string; count: number }>(
-      (a, b) => b.count - a.count,
+      (a, b) => a.count - b.count,
     );
     this.bombsQueue = new PriorityQueue<{ playerId: string; count: number }>(
-      (a, b) => b.count - a.count,
+      (a, b) => a.count - b.count,
     );
   }
   private logger: Logger = new Logger('RankService');
@@ -29,11 +29,6 @@ export class RankService {
 
     if (!this.playerStats[playerId]) {
       this.playerStats[playerId] = { hits: 0, bombs: 0 };
-      if (eventType === this.HIT) {
-        this.hitsQueue.push({ playerId, count: this.playerStats[playerId].hits });
-      } else if (eventType === this.BOMB) {
-        this.bombsQueue.push({ playerId, count: this.playerStats[playerId].bombs });
-      }
     }
 
     this.updatePlayerStats(playerId, eventType);
@@ -42,11 +37,12 @@ export class RankService {
   getMVP(eventType: string): { playerId: string; count: number } {
     if (eventType === this.HIT) {
       const top = this.hitsQueue.peek();
-      this.logger.log(`getMVP  많이 맞은 플레이어 : ${JSON.stringify(top)}`);
+      this.logger.log(`MVP  많이 맞은 플레이어 : ${JSON.stringify(top)}`);
       return top;
-    } else if (eventType === this.BOMB) {
+    }
+    if (eventType === this.BOMB) {
       const top = this.bombsQueue.peek();
-      this.logger.log(`getMVP  많이 폭탄 옮긴 플레이어 : ${JSON.stringify(top)}`,);
+      this.logger.log(`MVP  많이 폭탄 옮긴 플레이어 : ${JSON.stringify(top)}`);
       return top;
     }
     return null;
@@ -56,6 +52,7 @@ export class RankService {
     this.logger.log(`clear rank Queue`);
     this.hitsQueue.clear();
     this.bombsQueue.clear();
+    this.playerStats = {};
   }
 
   private updateQueue(
@@ -64,6 +61,7 @@ export class RankService {
     count: number,
   ): void {
     queue.update({ playerId, count }, count, (item) => item.playerId);
+    queue.printHeap();
   }
 
   private updatePlayerStats(playerId: string, eventType: string): void {
