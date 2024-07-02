@@ -89,7 +89,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       .filter(([playerId]) => playerId !== client.id)
       .filter(([playerId]) => {
         // Exclude users in bombUserList
-        return !this.statusService.getBombUserList().includes(playerId) || !this.statusService.checkIsNotPlayer(playerId);
+        return this.statusService.getBombUserList().includes(playerId) || this.statusService.checkIsNotPlayer(playerId);
       })
       .filter(([_, pos]) => {
         const distance = Math.sqrt(Math.pow(data.x - pos.x, 2) + Math.pow(data.y - pos.y, 2));
