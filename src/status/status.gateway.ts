@@ -228,7 +228,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       };
       this.logger.log("gameResult",result);
       this.rankService.gameEnd();
-      this.server.emit("gameResult", result);
+      this.server.emit("gameWinner", result);
     }
     setTimeout(() => {
       this.bombGameStartFlag = 0;
