@@ -131,7 +131,11 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
     //맞은 정보 업데이트 시킴
     hitResults.forEach(async (playerId) => {
-    this.rankService.processEvent({playerId:playerId, eventType: this.rankService.HIT});
+      this.rankService.processEvent({
+        playerId: playerId,
+        eventType: this.rankService.HIT,
+      });
+      this.logger.log(`hitResults playerId: ${playerId}`);
     });
   }
 
@@ -215,8 +219,8 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   handleBombGameWinner(winner: string[]) {
     if (winner) {
       const gameWinner = winner[0];
-      const bombMaster = this.rankService.getMVP(this.rankService.HIT);
-      const punchingBag = this.rankService.getMVP(this.rankService.BOMB);
+      const bombMaster = this.rankService.getMVP(this.rankService.BOMB);
+      const punchingBag = this.rankService.getMVP(this.rankService.HIT);
       const result = {
         gameWinner: gameWinner,
         BombMaster: bombMaster || { playerId: '', count: 0 },

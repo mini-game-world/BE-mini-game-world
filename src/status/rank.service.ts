@@ -29,9 +29,13 @@ export class RankService {
 
     if (!this.playerStats[playerId]) {
       this.playerStats[playerId] = { hits: 0, bombs: 0 };
-      this.hitsQueue.push({ playerId, count: 0 });
-      this.bombsQueue.push({ playerId, count: 0 });
+      if (eventType === this.HIT) {
+        this.hitsQueue.push({ playerId, count: this.playerStats[playerId].hits });
+      } else if (eventType === this.BOMB) {
+        this.bombsQueue.push({ playerId, count: this.playerStats[playerId].bombs });
+      }
     }
+
     this.updatePlayerStats(playerId, eventType);
   }
 
@@ -71,6 +75,7 @@ export class RankService {
           playerId,
           this.playerStats[playerId].hits,
         );
+        this.logger.log(` 공격받은 수 ${playerId} : ${this.playerStats[playerId].hits}`)
         break;
       case this.BOMB:
         this.playerStats[playerId].bombs += 1;
@@ -79,6 +84,7 @@ export class RankService {
           playerId,
           this.playerStats[playerId].bombs,
         );
+        this.logger.log(` 폭탄을 옮긴 수 ${playerId} : ${this.playerStats[playerId].bombs}`)
         break;
       default:
         break;
