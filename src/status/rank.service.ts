@@ -21,8 +21,8 @@ export class RankService {
   private hitsQueue: PriorityQueue<{ playerId: string; count: number }>;
   private bombsQueue: PriorityQueue<{ playerId: string; count: number }>;
 
-  private readonly HIT: string = 'hit';
-  private readonly BOMB: string = 'bomb';
+  readonly HIT: string = 'hit';
+  readonly BOMB: string = 'bomb';
 
   processEvent(data: { playerId: string; eventType: string }): void {
     const { playerId, eventType } = data;
@@ -48,7 +48,8 @@ export class RankService {
     return null;
   }
 
-  endGame() {
+  gameEnd() {
+    this.logger.log(`clear rank Queue`);
     this.hitsQueue.clear();
     this.bombsQueue.clear();
   }
