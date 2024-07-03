@@ -45,7 +45,13 @@ export class StatusGateway
     const geckos = geckosModule.default;
 
     this.logger.log('Init');
-    this.io = geckos();
+    const customIceServers = [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' }
+    ]
+    this.io = geckos({
+      iceServers: customIceServers
+    });
     this.io.listen(3001, {
       host: '0.0.0.0'  // 모든 네트워크 인터페이스에서 연결을 수락
     });
