@@ -25,6 +25,12 @@ export class StatusBombGameService {
   private TAG_HOLD_DURATION_MS: number = 1500;
   private TIMER_INTERVAL_MS: number = 1000;
 
+  //----아이템 생성 좌표 ----//
+  private HOUSE_HILL_BRIDGE_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 2304, y: 160 ,isNotExist:true };
+  private WATER_BRIDGE_CENTER_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 1120, y: 1824 ,isNotExist:true };
+  private TREASURE_CHEST_HILL_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 3328, y: 512 ,isNotExist:true };
+  private readonly ITEM_RADIUS: number = 80;
+
   private logger: Logger = new Logger("BombGameService");
 
   getBombGamePlayerMap() {
@@ -201,6 +207,9 @@ export class StatusBombGameService {
         this.eventEmitter.emit("bombGame.newBombUsers", newBombUsers);
 
         remainingTime = this.BOMB_TIME;
+
+        //아이템좌표 생성
+        this.makeGameItem();
       }
     }, this.TIMER_INTERVAL_MS);
   }
@@ -264,6 +273,33 @@ export class StatusBombGameService {
       return this.getPlayGameUserList();
     }
     return null;
+  }
+
+  private makeGameItem() {
+    const itemDotList = [];
+    if (this.HOUSE_HILL_BRIDGE_ITEM.isNotExist) {
+      this.HOUSE_HILL_BRIDGE_ITEM.isNotExist = false;
+      itemDotList.push({
+        x: this.HOUSE_HILL_BRIDGE_ITEM.x,
+        y: this.HOUSE_HILL_BRIDGE_ITEM.y,
+      });
+    }
+    if (this.WATER_BRIDGE_CENTER_ITEM.isNotExist) {
+      this.WATER_BRIDGE_CENTER_ITEM.isNotExist = false;
+      itemDotList.push({
+        x: this.WATER_BRIDGE_CENTER_ITEM.x,
+        y: this.WATER_BRIDGE_CENTER_ITEM.y,
+      });
+    }
+    if (this.TREASURE_CHEST_HILL_ITEM.isNotExist) {
+      this.TREASURE_CHEST_HILL_ITEM.isNotExist = false;
+      itemDotList.push({
+        x: this.TREASURE_CHEST_HILL_ITEM.x,
+        y: this.TREASURE_CHEST_HILL_ITEM.y,
+      });
+    }
+
+    this.eventEmitter.emit("bombGame.newItems", itemDotList);
   }
 }
 

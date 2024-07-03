@@ -4,12 +4,13 @@ import * as process from "process";
 import * as fs from 'fs';
 
 async function bootstrap() {
-  const httpsOptions = {
-    key: fs.readFileSync(process.env.HTTPS_KEY),
-    cert: fs.readFileSync(process.env.HTTPS_CERT),
-  };
+  // const httpsOptions = {
+  //   key: fs.readFileSync(process.env.HTTPS_KEY),
+  //   cert: fs.readFileSync(process.env.HTTPS_CERT),
+  // };
 
-  const app = await NestFactory.create(AppModule, { httpsOptions });
+  // const app = await NestFactory.create(AppModule, { httpsOptions });
+  const app = await NestFactory.create(AppModule);
   await app.listen(process.env.PORT);
 
   console.log(`Application is running on: ${await app.getUrl()}`);

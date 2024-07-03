@@ -4,20 +4,22 @@ import {
   OnGatewayInit,
   SubscribeMessage,
   WebSocketGateway,
-  WebSocketServer
-} from "@nestjs/websockets";
+  WebSocketServer,
+} from '@nestjs/websockets';
 
-import { Logger } from "@nestjs/common";
-import { Server, Socket } from "socket.io";
-import { StatusBombGameService } from "./status.service";
-import { RandomNumberGenerator } from './Utils/utils.RandomNumberGenerator'
-import { OnEvent } from "@nestjs/event-emitter";
-import { playerAttackPositionDTO, playerMovementDTO } from "./DTO/status.DTO";
+import { Logger } from '@nestjs/common';
+import { Server, Socket } from 'socket.io';
+import { StatusBombGameService } from './status.service';
+import { RandomNumberGenerator } from './Utils/utils.RandomNumberGenerator';
+import { OnEvent } from '@nestjs/event-emitter';
+import { playerAttackPositionDTO, playerMovementDTO } from './DTO/status.DTO';
 import { RandomNicknameService } from '../random-nickname/random-nickname.service';
 import { RankService } from './rank.service';
 
-@WebSocketGateway({ cors: { origin: "*" } })
-export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
+@WebSocketGateway({ cors: { origin: '*' } })
+export class statusGateway
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+{
   private CHECK_INTERVAL = 5000;
   private MIN_PLAYERS_FOR_BOMB_GAME = 3; // 최소 플레이어 수, 예시로 4명 설정
   private isCheckingBombRooms = false; // checkBombRooms 실행 여부를 추적
@@ -32,8 +34,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   @WebSocketServer()
   server: Server;
 
-  private logger: Logger = new Logger("Status-Gateway");
-
+  private logger: Logger = new Logger('Status-Gateway');
 
   private HITRADIUS = 100;
 
@@ -41,20 +42,26 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private bombGameStartFlag = 0;
   private generator = new RandomNumberGenerator(1, 30);
 
-  @SubscribeMessage("playerMovement")
+  @SubscribeMessage('playerMovement')
   playerPosition(client: Socket, data: playerMovementDTO): void {
     this.statusService.setBombGameRoomPosition(client.id, data.x, data.y);
 
-    client.broadcast.emit("playerMoved", { playerId: client.id, x: data.x, y: data.y });
+    client.broadcast.emit('playerMoved', {
+      playerId: client.id,
+      x: data.x,
+      y: data.y,
+    });
 
     this.statusService.checkOverlappingBombUser(client.id, data.x, data.y);
   }
 
-  @SubscribeMessage("attackPosition")
+  @SubscribeMessage('attackPosition')
   handleAttackPosition(client: Socket, data: playerAttackPositionDTO): void {
     const clientData = this.statusService.bombGameRoomPosition.get(client.id);
     if (!clientData) {
-      this.logger.warn(`Client ${client.id} sent attack position but is not in any room`);
+      this.logger.warn(
+        `Client ${client.id} sent attack position but is not in any room`,
+      );
       return;
     }
 
@@ -67,22 +74,32 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     const logMessage = `attackPosition [${client.id}] x: ${data.x}, y: ${data.y}}`;
     this.logger.log(logMessage);
 
-    this.logger.log(`Client ${client.id} attacked position x: ${data.x}, y: ${data.y}`);
+    this.logger.log(
+      `Client ${client.id} attacked position x: ${data.x}, y: ${data.y}`,
+    );
 
     // 같은 방의 다른 클라이언트들의 위치와 비교하여 히트된 유저들의 아이디만 추출
-    const hitResults = Array.from(this.statusService.bombGameRoomPosition.entries())
+    const hitResults = Array.from(
+      this.statusService.bombGameRoomPosition.entries(),
+    )
       .filter(([playerId]) => playerId !== client.id)
       .filter(([playerId]) => {
         // Exclude users in bombUserList
-        return !this.statusService.getBombUserList().includes(playerId) || !this.statusService.checkIsNotPlayer(playerId);
+        return (
+          !this.statusService.getBombUserList().includes(playerId) ||
+          !this.statusService.checkIsNotPlayer(playerId)
+        );
       })
       .filter(([_, pos]) => {
-        const distance = Math.sqrt(Math.pow(data.x - pos.x, 2) + Math.pow(data.y - pos.y, 2));
+        const distance = Math.sqrt(
+          Math.pow(data.x - pos.x, 2) + Math.pow(data.y - pos.y, 2),
+        );
         return distance <= this.HITRADIUS;
       })
       .filter(([playerId]) => {
         // Check if the player is not stunned
-        const playerData = this.statusService.bombGameRoomPosition.get(playerId);
+        const playerData =
+          this.statusService.bombGameRoomPosition.get(playerId);
         return playerData && playerData.isStun !== 1;
       })
       .map(([playerId]) => playerId);
@@ -92,13 +109,16 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       const targetClient = this.server.sockets.sockets.get(playerId);
       if (targetClient) {
         // 유저의 isStun을 1초간 1로 바꿨다가 다시 0으로 바꾸는 비동기 코드
-        const clientPosition = this.statusService.bombGameRoomPosition.get(playerId);
+        const clientPosition =
+          this.statusService.bombGameRoomPosition.get(playerId);
         if (clientPosition) {
           clientPosition.isStun = 1;
           this.statusService.bombGameRoomPosition.set(playerId, clientPosition);
 
           // 1초 후에 isStun을 0으로 변경
-          await new Promise(resolve => setTimeout(resolve, this.STUN_DURATION_MS));
+          await new Promise((resolve) =>
+            setTimeout(resolve, this.STUN_DURATION_MS),
+          );
 
           clientPosition.isStun = 0;
           this.statusService.bombGameRoomPosition.set(playerId, clientPosition);
@@ -107,10 +127,10 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     });
 
     // 히트 결과를 해당 룸의 모든 클라이언트에게 알림
-    this.server.emit("attackedPlayers", hitResults);
+    this.server.emit('attackedPlayers', hitResults);
 
     // 공격중인 유저를 모두에게 전파(화면에 공격중인것을 표시하기 위해)
-    client.broadcast.emit("attackPlayer", client.id);
+    client.broadcast.emit('attackPlayer', client.id);
 
     this.logger.log(`Attack results: ${JSON.stringify(hitResults)}`);
 
@@ -125,7 +145,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   afterInit(server: any): any {
-    this.logger.log("Init");
+    this.logger.log('Init');
   }
 
   //연결이 되었다면.. 뭔가 행위를 할 수있다 .~!
@@ -134,30 +154,46 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     const y = Math.floor(Math.random() * (640 - 320 + 1)) + 320;
     const randomNum = this.generator.getRandomNumber();
     const randomNickname = await this.randomNicknameService.getRandomNickname();
-    this.statusService.bombGameRoomPosition.set(client.id, { x, y, avatar: randomNum, nickname: randomNickname, isStun: 0, isPlay: 0, isDead: 0 });
-    console.log(`${JSON.stringify(this.statusService.bombGameRoomPosition.get(client.id))}`)
+    this.statusService.bombGameRoomPosition.set(client.id, {
+      x,
+      y,
+      avatar: randomNum,
+      nickname: randomNickname,
+      isStun: 0,
+      isPlay: 0,
+      isDead: 0,
+    });
+    console.log(
+      `${JSON.stringify(this.statusService.bombGameRoomPosition.get(client.id))}`,
+    );
     // this.server.to(room).emit("nickname", { [client.id]: "bestplayer" });
-    client.broadcast.emit("newPlayer", {
+    client.broadcast.emit('newPlayer', {
       playerId: client.id,
       x,
       y,
       avatar: randomNum,
       nickname: randomNickname,
-      isPlay: 0
+      isPlay: 0,
     });
 
-    const allClientsInRoomObject = Object.fromEntries(this.statusService.bombGameRoomPosition);
+    const allClientsInRoomObject = Object.fromEntries(
+      this.statusService.bombGameRoomPosition,
+    );
 
-    client.emit("currentPlayers", allClientsInRoomObject);
-    client.emit("gamestatus", this.bombGameStartFlag);
+    client.emit('currentPlayers', allClientsInRoomObject);
+    client.emit('gamestatus', this.bombGameStartFlag);
 
     this.logger.log(`Client ${client.id} joined`);
-    this.logger.log(`Number of connected clients: ${this.statusService.bombGameRoomPosition.size}`);
+    this.logger.log(
+      `Number of connected clients: ${this.statusService.bombGameRoomPosition.size}`,
+    );
   }
 
   handleDisconnect(client: any): any {
-    this.generator.restoreNumber(this.statusService.bombGameRoomPosition.get(client.id).avatar);
-    this.server.emit("playerDisconnected", client.id);
+    this.generator.restoreNumber(
+      this.statusService.bombGameRoomPosition.get(client.id).avatar,
+    );
+    this.server.emit('playerDisconnected', client.id);
     this.statusService.disconnectBombUser(client.id);
 
     this.logger.log(`Client disconnected: ${client.id}`);
@@ -167,40 +203,45 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   bombGameStart() {
     this.bombGameStartFlag = 1;
-    this.server.emit("playingGame", this.bombGameStartFlag);
+    this.server.emit('playingGame', this.bombGameStartFlag);
     this.statusService.startBombGameWithTimer();
   }
 
-  @OnEvent("bombGame.start")
+  @OnEvent('bombGame.start')
   handleBombGameStart(playGameUserList: string[], bombUserList: string[]) {
-    this.server.emit("bombUsers", bombUserList);
+    this.server.emit('bombUsers', bombUserList);
   }
 
-  @OnEvent("bombGame.timer")
+  @OnEvent('bombGame.timer')
   handleBombGameTimer(remainingTime: number) {
-    this.server.emit("bombTimer", { remainingTime });
+    this.server.emit('bombTimer', { remainingTime });
   }
 
-  @OnEvent("bombGame.deadUsers")
+  @OnEvent('bombGame.deadUsers')
   handleBombGameDeadUsers(bombUserList: string[]) {
-    this.server.emit("deadUsers", bombUserList);
+    this.server.emit('deadUsers', bombUserList);
   }
 
-  @OnEvent("bombGame.newBombUsers")
+  @OnEvent('bombGame.newBombUsers')
   handleBombGameNewBombUsers(bombUserList: string[]) {
     this.logger.log(`새로운 폭탄멤버는 ${bombUserList}`);
-    this.server.emit("bombUsers", bombUserList);
+    this.server.emit('bombUsers', bombUserList);
   }
 
-  @OnEvent("bombGame.changeBombUser")
+  @OnEvent('bombGame.changeBombUser')
   handleBombGameChangeBombUsers(changeBombUserList: string[]) {
-    this.logger.log(`${changeBombUserList[1]}에서 ${changeBombUserList[0]}으로 폭탄이 옮겨졌습니다.`);
+    this.logger.log(
+      `${changeBombUserList[1]}에서 ${changeBombUserList[0]}으로 폭탄이 옮겨졌습니다.`,
+    );
     //폭탄 옮긴유저 카운트
-    this.rankService.processEvent({playerId:changeBombUserList[1],eventType:this.rankService.BOMB})
-    this.server.emit("changeBombUser", changeBombUserList);
+    this.rankService.processEvent({
+      playerId: changeBombUserList[1],
+      eventType: this.rankService.BOMB,
+    });
+    this.server.emit('changeBombUser', changeBombUserList);
   }
 
-  @OnEvent("bombGame.winner")
+  @OnEvent('bombGame.winner')
   handleBombGameWinner(winner: string[]) {
     if (winner) {
       const gameWinner = winner[0];
@@ -211,14 +252,20 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         BombMaster: bombMaster || { playerId: '', count: 0 },
         PunchingBag: punchingBag || { playerId: '', count: 0 },
       };
-      this.logger.log("gameResult",result);
+      this.logger.log('gameResult', result);
       this.rankService.gameEnd();
-      this.server.emit("gameWinner", result);
+      this.server.emit('gameWinner', result);
     }
     setTimeout(() => {
       this.bombGameStartFlag = 0;
-      this.server.emit("playingGame", this.bombGameStartFlag);
+      this.server.emit('playingGame', this.bombGameStartFlag);
     }, 15000);
+  }
+
+  @OnEvent('bombGame.newItems')
+  makeNewItem(itemDotList) {
+    this.logger.log(`새로 생성된 아이템 ==> ${JSON.stringify(itemDotList)}`);
+    this.server.emit('newItems', itemDotList);
   }
 
   private safeCheckBombRooms() {
@@ -238,9 +285,9 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       // Return a new Promise that resolves when the countdown finishes
       await new Promise<void>((resolve) => {
         const countdownInterval = setInterval(() => {
-          this.server.emit("bombGameReady", countdown);
+          this.server.emit('bombGameReady', countdown);
           if (!this.isBombGameStart()) {
-            this.server.emit("bombGameReady", -1);
+            this.server.emit('bombGameReady', -1);
             clearInterval(countdownInterval);
             resolve();
             return;
@@ -252,7 +299,7 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
             if (this.isBombGameStart()) {
               this.bombGameStart();
             } else {
-              this.server.emit("bombGameReady", -1);
+              this.server.emit('bombGameReady', -1);
             }
             resolve(); // Resolve the Promise here
           }
@@ -262,7 +309,11 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   private isBombGameStart(): boolean {
-    if (this.statusService.getBombGamePlayerMap().size >= this.MIN_PLAYERS_FOR_BOMB_GAME && !this.bombGameStartFlag) {
+    if (
+      this.statusService.getBombGamePlayerMap().size >=
+        this.MIN_PLAYERS_FOR_BOMB_GAME &&
+      !this.bombGameStartFlag
+    ) {
       return true;
     }
     return false;
