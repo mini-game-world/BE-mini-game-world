@@ -157,12 +157,15 @@ export class StatusBombGameService {
     this.eventEmitter.emit("bombGame.start", this.getPlayGameUserList(), this.getBombUserList());
 
     let remainingTime = this.BOMB_TIME;
+
+    //게임 아이템 상태 초기화
+    this.setGameItemStatus();
+
     const timerInterval = setInterval(() => {
       remainingTime -= 1;
       this.eventEmitter.emit("bombGame.timer", remainingTime);
 
       this.logger.debug(`bombTimer ${remainingTime}`);
-
       if (remainingTime <= 0) {
         this.eventEmitter.emit("bombGame.timer", remainingTime);
 
@@ -300,6 +303,12 @@ export class StatusBombGameService {
     }
 
     this.eventEmitter.emit("bombGame.newItems", itemDotList);
+  }
+
+  private setGameItemStatus(){
+    this.HOUSE_HILL_BRIDGE_ITEM.isNotExist = true;
+    this.WATER_BRIDGE_CENTER_ITEM.isNotExist = true;
+    this.TREASURE_CHEST_HILL_ITEM.isNotExist = true;
   }
 }
 
