@@ -310,5 +310,29 @@ export class StatusBombGameService {
     this.WATER_BRIDGE_CENTER_ITEM.isNotExist = true;
     this.TREASURE_CHEST_HILL_ITEM.isNotExist = true;
   }
+
+  checkOverlappingItemUser(clientId: string, x: number, y: number) {
+    if (this.checkIsNotPlayer(clientId)) {
+      return;
+    }
+    const items = [
+      this.HOUSE_HILL_BRIDGE_ITEM,
+      this.WATER_BRIDGE_CENTER_ITEM,
+      this.TREASURE_CHEST_HILL_ITEM,
+    ];
+
+    items.forEach(item => {
+      if (!item.isNotExist && this.isWithinRadius(item, x, y, this.ITEM_RADIUS)) {
+        item.isNotExist = true;
+        this.eventEmitter.emit('bombGame.itemPickedUp', clientId, item);
+        this.logger.log(`${this.bombGameRoomPosition.get(clientId).nickname} 아이템 획득 (${item.x}, ${item.y})`);
+      }
+    });
+  }
+
+  private isWithinRadius(item: { x: number; y: number }, x: number, y: number, radius: number): boolean {
+    const distance = Math.sqrt(Math.pow(item.x - x, 2) + Math.pow(item.y - y, 2));
+    return distance <= radius;
+  }
 }
 

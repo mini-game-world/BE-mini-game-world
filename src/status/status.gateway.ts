@@ -46,13 +46,10 @@ export class statusGateway
   playerPosition(client: Socket, data: playerMovementDTO): void {
     this.statusService.setBombGameRoomPosition(client.id, data.x, data.y);
 
-    client.broadcast.emit('playerMoved', {
-      playerId: client.id,
-      x: data.x,
-      y: data.y,
-    });
+    client.broadcast.emit('playerMoved', { playerId: client.id, x: data.x, y: data.y, });
 
     this.statusService.checkOverlappingBombUser(client.id, data.x, data.y);
+    this.statusService.checkOverlappingItemUser(client.id, data.x, data.y);
   }
 
   @SubscribeMessage('attackPosition')
@@ -264,6 +261,7 @@ export class statusGateway
 
   @OnEvent('bombGame.newItems')
   makeNewItem(itemDotList) {
+    if (itemDotList.length === 0) return;
     this.logger.log(`새로 생성된 아이템 ==> ${JSON.stringify(itemDotList)}`);
     this.server.emit('newItems', itemDotList);
   }
