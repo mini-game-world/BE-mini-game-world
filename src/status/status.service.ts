@@ -35,6 +35,15 @@ export class StatusBombGameService {
     return Array.from(this.playGameUser);
   }
 
+  setBombGameRoomPosition(clientId: string, x: number, y: number){
+    const status = this.bombGameRoomPosition.get(clientId);
+    if (status) {
+      status.x = x;
+      status.y = y;
+      this.bombGameRoomPosition.set(clientId, status);
+    }
+  }
+
   async disconnectBombUser(deleteUserId: string) {
     // this.cacheManager.set('anay', 'spy');
     // const value = await this.cacheManager.get('anay');
@@ -50,7 +59,13 @@ export class StatusBombGameService {
     this.bombUserList.delete(deleteUserId);
   }
 
-  checkOverlappingUser(clientId: string, x: number, y: number) {
+  checkOverlappingBombUser(clientId: string, x: number, y: number) {
+    if (this.bombUserList.size === 0) {
+      return;
+    }
+    if (this.checkIsNotPlayer(clientId)) {
+      return;
+    }
     const myPosition = { x: x, y: y };
 
     // 이 유저가 폭탄 유저라면

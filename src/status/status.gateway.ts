@@ -43,26 +43,11 @@ export class statusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   @SubscribeMessage("playerMovement")
   playerPosition(client: Socket, data: playerMovementDTO): void {
-    const status = this.statusService.bombGameRoomPosition.get(client.id);
+    this.statusService.setBombGameRoomPosition(client.id, data.x, data.y);
 
-    // x와 y 값만 업데이트
-    if (status) {
-      status.x = data.x;
-      status.y = data.y;
-
-      // 업데이트된 status 객체를 다시 설정
-      this.statusService.bombGameRoomPosition.set(client.id, status);
-    }
     client.broadcast.emit("playerMoved", { playerId: client.id, x: data.x, y: data.y });
 
-    // bombUserList가 비어 있으면 로직을 실행하지 않음
-    if (this.statusService.getBombUserList().length === 0) {
-      return;
-    }
-    if (this.statusService.checkIsNotPlayer(client.id)) {
-      return;
-    }
-    this.statusService.checkOverlappingUser(client.id, data.x, data.y);
+    this.statusService.checkOverlappingBombUser(client.id, data.x, data.y);
   }
 
   @SubscribeMessage("attackPosition")
