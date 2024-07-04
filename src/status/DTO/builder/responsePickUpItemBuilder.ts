@@ -1,4 +1,4 @@
-import { ResponsePickUpItemDTO } from '../status.DTO';
+import { ResponsePickUpItemDTO } from '../status.DTO.js';
 
 export class ResponsePickUpItemBuilder {
   private readonly responsePickUpItemDTO: ResponsePickUpItemDTO;
