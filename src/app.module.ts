@@ -17,6 +17,7 @@ dotenv.config();
 @Module({
   imports: [
     MongooseModule.forRoot(process.env.MONGO_URI),
+    PrometheusModule.register(),
     StatusModule,
     UsersModule,
     GuestModule,
@@ -27,5 +28,15 @@ dotenv.config();
     ChattingModule,
     GeckosIoModule,
   ],
+  providers: [
+    makeCounterProvider({
+      name: 'websocket_connections_total',
+      help: 'Total number of websocket connections',
+    }),
+  ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(SocketMetricsMiddleware).forRoutes('*'); // 모든 경로에 대해 미들웨어를 적용합니다.
+  }
+}
