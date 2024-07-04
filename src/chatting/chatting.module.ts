@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { ChattingService } from './chatting.service';
-import { ChattingRepository } from './chatting.repository';
-import { ChattingGateway } from './chatting.gateway';
-import { BadWord, BadWordSchema } from './schema/badWord.schema';
-import { StatusModule } from '../status/status.module';
+import { ChattingService } from './chatting.service.js';
+import { ChattingRepository } from './chatting.repository.js';
+import { ChattingGateway } from './chatting.gateway.js';
+import { BadWord, BadWordSchema } from './schema/badWord.schema.js';
+import { StatusModule } from '../status/status.module.js';
 import { ScheduleModule } from '@nestjs/schedule';
-import { WebhookController } from './webhook.controller';
+import { WebhookController } from './webhook.controller.js';
 
 @Module({
   imports: [

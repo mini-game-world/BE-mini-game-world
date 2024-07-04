@@ -1,8 +1,8 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
-import { ChattingRepository } from './chatting.repository';
-import { AhoCorasick } from './utils/aho-corasick';
+import { ChattingRepository } from './chatting.repository.js';
+import { AhoCorasick } from './utils/aho-corasick.js';
 
 @Injectable()
 export class ChattingService implements OnModuleInit {

@@ -6,7 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { ChattingService } from './chatting.service';
+import { ChattingService } from './chatting.service.js';
 import * as dotenv from 'dotenv';
 
 dotenv.config();

@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PriorityQueue } from './Utils/utils.PriorityQueue';
+import { PriorityQueue } from './Utils/utils.PriorityQueue.js';
 
 interface PlayerStats {
   hits: number;

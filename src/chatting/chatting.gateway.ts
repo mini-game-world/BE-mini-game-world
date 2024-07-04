@@ -8,8 +8,8 @@ import {
 } from '@nestjs/websockets';
 import { Server } from 'socket.io';
 import { Logger } from '@nestjs/common';
-import { ChattingService } from './chatting.service';
-import { StatusBombGameService } from '../status/status.service';
+import { ChattingService } from './chatting.service.js';
+import { StatusBombGameService } from '../status/status.service.js';
 
 @WebSocketGateway({ cors: { origin: '*' } })
 export class ChattingGateway
