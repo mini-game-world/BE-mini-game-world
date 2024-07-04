@@ -1,4 +1,4 @@
-import { ResponsePickUpItemBuilder } from './builder/responsePickUpItemBuilder';
+import { ResponsePickUpItemBuilder } from './builder/responsePickUpItemBuilder.js';
 
 export class playerJoinRoomDTO {
   room: string;
