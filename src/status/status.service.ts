@@ -334,7 +334,7 @@ export class StatusBombGameService {
           .setYDot(item.y)
           .build();
 
-        this.logger.log(`${this.bombGameRoomPosition.get(clientId).nickname}  ${itemNumber} 가 번 아이템 획득 (${item.x}, ${item.y})`);
+        this.logger.log(`${this.bombGameRoomPosition.get(clientId).nickname} 이 ${itemNumber} 번 아이템 획득 (${item.x}, ${item.y})`);
         this.eventEmitter.emit('bombGame.itemPickedUp', responsePickupItem);
       }
     });
