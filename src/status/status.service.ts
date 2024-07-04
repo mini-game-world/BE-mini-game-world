@@ -329,7 +329,7 @@ export class StatusBombGameService {
 
         const responsePickupItem = ResponsePickUpItemDTO.builder()
           .setPlayerId(clientId)
-          .setItemNumber(0)
+          .setItemNumber(2)
           .setXDot(item.x)
           .setYDot(item.y)
           .build();
