@@ -8,6 +8,7 @@ import { RandomNicknameModule } from './random-nickname/random-nickname.module.j
 import { CacheModule } from './cache/cache.module.js';
 import { RedisModule } from './redis/redis.module.js';
 import { ChattingModule } from './chatting/chatting.module.js';
+import { GeckosIoModule } from './geckos/geckos.module.js';
 
 import * as dotenv from 'dotenv';
 
@@ -24,6 +25,7 @@ dotenv.config();
     CacheModule,
     RedisModule,
     ChattingModule,
+    GeckosIoModule,
   ],
 })
 export class AppModule {}

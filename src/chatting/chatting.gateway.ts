@@ -7,6 +7,8 @@ import {
 import { Logger } from '@nestjs/common';
 import { ChattingService } from './chatting.service.js';
 import { StatusBombGameService } from '../status/status.service.js';
+import { GeckosIoService } from '../geckos/geckos.service.js';
+
 
 @WebSocketGateway({ cors: { origin: '*' } })
 export class ChattingGateway
@@ -18,28 +20,11 @@ export class ChattingGateway
   constructor(
     private readonly chattingService: ChattingService,
     private readonly statusBombGameService: StatusBombGameService,
+    private readonly geckosIoService: GeckosIoService
   ) {}
 
   async afterInit(server: any) {
-    const geckosModule = await import('@geckos.io/server');
-    const geckos = geckosModule.default;
-
-    this.logger.log('Init');
-    const customIceServers = [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' }
-    ]
-    this.io = geckos({
-      iceServers: customIceServers
-    });
-    // this.io.listen(3001, {
-    //   host: '0.0.0.0'  // 모든 네트워크 인터페이스에서 연결을 수락
-    // });
-    this.logger.log(`server는??????????????${server}`);
-    // this.logger.log(`server는??????????????${JSON.stringify(server)}`);
-    // this.io.addServer(server);
-
-    this.io.onConnection((channel: any) => {
+    this.geckosIoService.io.onConnection((channel: any) => {
       this.handleConnection(channel);
     });
   }

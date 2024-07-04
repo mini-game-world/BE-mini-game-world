@@ -7,12 +7,14 @@ import { BadWord, BadWordSchema } from './schema/badWord.schema.js';
 import { StatusModule } from '../status/status.module.js';
 import { ScheduleModule } from '@nestjs/schedule';
 import { WebhookController } from './webhook.controller.js';
+import { GeckosIoModule } from '../geckos/geckos.module.js';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: BadWord.name, schema: BadWordSchema }]),
     ScheduleModule.forRoot(),
     StatusModule,
+    GeckosIoModule,
   ],
   controllers: [WebhookController],
   providers: [ChattingService, ChattingRepository, ChattingGateway],

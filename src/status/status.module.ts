@@ -5,10 +5,11 @@ import { StatusBombGameService } from './status.service.js';
 import { CacheModule } from '../cache/cache.module.js';
 import { RandomNicknameModule } from '../random-nickname/random-nickname.module.js';
 import { RankService } from './rank.service.js';
+import { GeckosIoModule } from '../geckos/geckos.module.js';
 
 @Module({
-    imports: [EventEmitterModule.forRoot(), CacheModule, RandomNicknameModule],
-    providers: [StatusGateway, StatusBombGameService,RankService],
+    imports: [EventEmitterModule.forRoot(), CacheModule, RandomNicknameModule, GeckosIoModule],
+    providers: [StatusGateway, StatusBombGameService, RankService],
     exports: [StatusBombGameService],
 })
 export class StatusModule {}

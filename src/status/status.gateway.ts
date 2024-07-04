@@ -11,6 +11,7 @@ import { OnEvent } from "@nestjs/event-emitter";
 import { playerAttackPositionDTO, playerMovementDTO } from "./DTO/status.DTO.js";
 import { RandomNicknameService } from '../random-nickname/random-nickname.service.js';
 import { RankService } from './rank.service.js';
+import { GeckosIoService } from '../geckos/geckos.service.js';
 
 @WebSocketGateway({ cors: { origin: "*" } })
 export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
@@ -22,6 +23,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     private readonly statusService: StatusBombGameService,
     private readonly randomNicknameService: RandomNicknameService,
     private readonly rankService: RankService,
+    private readonly geckosIoService: GeckosIoService
   ) {
     setInterval(this.safeCheckBombRooms.bind(this), this.CHECK_INTERVAL);
   }
@@ -36,25 +38,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private generator = new RandomNumberGenerator(1, 30);
 
   async afterInit(server: any) {
-    const geckosModule = await import('@geckos.io/server');
-    const geckos = geckosModule.default;
-
-    this.logger.log('Init');
-    const customIceServers = [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' }
-    ]
-    this.io = geckos({
-      iceServers: customIceServers
-    });
-    this.io.listen(3001, {
-      host: '0.0.0.0'  // 모든 네트워크 인터페이스에서 연결을 수락
-    });
-    this.logger.log(`server는??????????????${server}`);
-    // this.logger.log(`server는??????????????${JSON.stringify(server)}`);
-    // this.io.addServer(server);
-
-    this.io.onConnection((channel: any) => {
+    this.geckosIoService.io.onConnection((channel: any) => {
       this.handleConnection(channel);
     });
   }
