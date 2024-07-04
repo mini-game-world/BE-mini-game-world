@@ -28,36 +28,53 @@ jobs:
               run: npm run build
 
             - name: 압축하기
-              run: tar -czvf project.tar.gz dist .env package.json package-lock.json
+              run: tar -czvf $GITHUB_SHA.tar.gz appspec.yml scripts dist .env package.json package-lock.json
 
-            - name: SCP로 EC2에 빌드된 파일 전송하기
-              uses: appleboy/scp-action@v0.1.7
+            - name: AWS Resource에 접근할 수 있게 AWS credentials 설정
+              uses: aws-actions/configure-aws-credentials@v4
               with:
-                host: ${{ secrets.EC2_HOST }}
-                username: ${{ secrets.EC2_USERNAME }}
-                key: ${{ secrets.EC2_PRIVATE_KEY }}
-                source: project.tar.gz
-                target: /home/ubuntu/BE-mini-game-world/tobe
+                aws-region: ap-northeast-2
+                aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-            - name: SSH로 EC2에 접속하기
-              uses: appleboy/ssh-action@v1.0.3
-              with:
-                host: ${{ secrets.EC2_HOST }}
-                username: ${{ secrets.EC2_USERNAME }}
-                key: ${{ secrets.EC2_PRIVATE_KEY }}
-                script_stop: true
-                script: |
-                  rm -rf /home/ubuntu/BE-mini-game-world/current
-                  mkdir /home/ubuntu/BE-mini-game-world/current
-                  mv /home/ubuntu/BE-mini-game-world/tobe/project.tar.gz /home/ubuntu/BE-mini-game-world/current/project.tar.gz
-                  cd /home/ubuntu/BE-mini-game-world/current
-                  tar -xvf project.tar.gz
-                  # NVM 로드 및 npm 설치 경로 설정
-                  export NVM_DIR="$HOME/.nvm"
-                  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-                  [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-                  node -v
-                  npm -v
-                  npm ci
-                  pm2 kill
-                  pm2 start dist/main.js --name "mini-game-world"
+
+#            - name: SCP로 EC2에 빌드된 파일 전송하기
+#              uses: appleboy/scp-action@v0.1.7
+#              with:
+#                host: ${{ secrets.EC2_HOST }}
+#                username: ${{ secrets.EC2_USERNAME }}
+#                key: ${{ secrets.EC2_PRIVATE_KEY }}
+#                source: project.tar.gz
+#                target: /home/ubuntu/BE-mini-game-world/tobe
+
+#            - name: SSH로 EC2에 접속하기
+#              uses: appleboy/ssh-action@v1.0.3
+#              with:
+#                host: ${{ secrets.EC2_HOST }}
+#                username: ${{ secrets.EC2_USERNAME }}
+#                key: ${{ secrets.EC2_PRIVATE_KEY }}
+#                script_stop: true
+#                script: |
+#                  rm -rf /home/ubuntu/BE-mini-game-world/current
+#                  mkdir /home/ubuntu/BE-mini-game-world/current
+#                  mv /home/ubuntu/BE-mini-game-world/tobe/project.tar.gz /home/ubuntu/BE-mini-game-world/current/project.tar.gz
+#                  cd /home/ubuntu/BE-mini-game-world/current
+#                  tar -xvf project.tar.gz
+#                  # NVM 로드 및 npm 설치 경로 설정
+#                  export NVM_DIR="$HOME/.nvm"
+#                  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+#                  [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+#                  node -v
+#                  npm -v
+#                  npm ci
+#                  pm2 kill
+#                  pm2 start dist/main.js --name "mini-game-world"
+            - name: S3에 프로젝트 폴더 업로드하기
+              run: aws s3 cp --region ap-northeast-2 ./$GITHUB_SHA.tar.gz s3://minigameworldcodedelopy/$GITHUB_SHA.tar.gz
+
+            - name: Code Deploy를 활용해 EC2에 프로젝트 코드 배포
+              run: aws deploy create-deployment
+                --application-name minigameworld
+                --deployment-config-name CodeDeployDefault.AllAtOnce
+                --deployment-group-name Production
+                --s3-location bucket=minigameworldcodedelopy,bundleType=tgz,key=$GITHUB_SHA.tar.gz
