@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { CacheService } from '../cache/cache.service';
+import { ResponsePickUpItemDTO } from './DTO/status.DTO';
 
 @Injectable()
 export class StatusBombGameService {
@@ -325,7 +326,15 @@ export class StatusBombGameService {
       if (!item.isNotExist && this.isWithinRadius(item, x, y, this.ITEM_RADIUS)) {
         item.isNotExist = true;
         const itemNumber: number = this.randomItemNumber();
-        this.eventEmitter.emit('bombGame.itemPickedUp',{ playerId:clientId,  item:itemNumber ,  x: item.x, y: item.y });
+
+        const responsePickupItem = ResponsePickUpItemDTO.builder()
+          .setPlayerId(clientId)
+          .setItemNumber(itemNumber)
+          .setXDot(item.x)
+          .setYDot(item.y)
+          .build();
+
+        this.eventEmitter.emit('bombGame.itemPickedUp', responsePickupItem);
         this.logger.log(`${this.bombGameRoomPosition.get(clientId).nickname}  ${itemNumber} 가 번 아이템 획득 (${item.x}, ${item.y})`);
       }
     });
