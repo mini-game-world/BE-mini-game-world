@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { BadWord } from './schema/badWord.schema';
+import { BadWord } from './schema/badWord.schema.js';
 
 @Injectable()
 export class ChattingRepository {

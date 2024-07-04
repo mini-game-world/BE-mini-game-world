@@ -2,14 +2,13 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
   OnGatewayInit,
-  SubscribeMessage,
   WebSocketGateway,
-  WebSocketServer,
 } from '@nestjs/websockets';
-import { Server } from 'socket.io';
 import { Logger } from '@nestjs/common';
-import { ChattingService } from './chatting.service';
-import { StatusBombGameService } from '../status/status.service';
+import { ChattingService } from './chatting.service.js';
+import { StatusBombGameService } from '../status/status.service.js';
+import { GeckosIoService } from '../geckos/geckos.service.js';
+
 
 @WebSocketGateway({ cors: { origin: '*' } })
 export class ChattingGateway
@@ -17,42 +16,49 @@ export class ChattingGateway
 {
   private logger: Logger = new Logger('Chatting-Gateway');
 
-  @WebSocketServer()
-  server: Server;
-
   constructor(
     private readonly chattingService: ChattingService,
     private readonly statusBombGameService: StatusBombGameService,
+    private readonly geckosIoService: GeckosIoService
   ) {}
 
-  afterInit(server: any) {
-    this.logger.log('Init----Chatting-Gateway');
+  async afterInit() {
+    this.logger.log('Init StatusGateway');
+
+    await this.geckosIoService.waitForInitialization();
+
+    this.geckosIoService.io.onConnection((channel: any) => {
+      this.handleConnection(channel);
+    });
   }
 
-  handleConnection(client: any, ...args: any[]) {
-    this.logger.log(`chatting connect client.id --->${client.id}`);
+  handleConnection(channel: any) {
+    channel.on('message', (data: string) =>
+      this.handleMessage(channel, data),
+    );
+
+    channel.on('disconnect', () => this.handleDisconnect(channel));
   }
 
-  handleDisconnect(client: any) {
-    this.logger.log(`chatting disconnect client.id --->${client.id}`);
+  handleDisconnect(channel: any): any {
+    this.logger.log(`chatting disconnect client.id --->${channel.id}`);
   }
 
-  @SubscribeMessage('message')
-  async handleMessage(client: any, data: string) {
+  async handleMessage(channel: any, data: string) {
     if (!data) {
       this.logger.log(`message was not found.`);
       return;
     }
     const censoredMessage = await this.chattingService.censorBadWords(data);
-    const nickname = this.statusBombGameService.bombGameRoomPosition.get(client.id).nickname;
+    const nickname = this.statusBombGameService.bombGameRoomPosition.get(channel.id).nickname;
 
     const sendMessage: string =
       this.chattingService.checkChattingLen(censoredMessage);
 
     this.logger.log(`[Chatting message] ${nickname} : ${sendMessage} `);
 
-    this.server.emit('broadcastMessage', {
-      playerId: client.id,
+    this.geckosIoService.io.emit('broadcastMessage', {
+      playerId: channel.id,
       nickname: nickname,
       message: sendMessage,
     });

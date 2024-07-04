@@ -1,7 +1,6 @@
 import { ResponsePickUpItemBuilder } from './builder/responsePickUpItemBuilder';
 
 export class playerJoinRoomDTO {
-
   room: string;
 
   x: number;
@@ -9,21 +8,17 @@ export class playerJoinRoomDTO {
   y: number;
 }
 
-
 export class playerMovementDTO {
-
   x: number;
 
   y: number;
 }
 
-export class playerAttackPositionDTO{
+export class playerAttackPositionDTO {
+  x: number;
 
-  x:number;
-  
-  y:number;
+  y: number;
 }
-
 
 export class ResponsePickUpItemDTO {
   playerId: string;
@@ -34,3 +29,4 @@ export class ResponsePickUpItemDTO {
     return new ResponsePickUpItemBuilder();
   }
 }
+

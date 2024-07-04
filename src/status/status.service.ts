@@ -1,15 +1,29 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { EventEmitter2 } from "@nestjs/event-emitter";
-import { CacheService } from '../cache/cache.service';
-import { ResponsePickUpItemDTO } from './DTO/status.DTO';
+import { Injectable, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { CacheService } from '../cache/cache.service.js';
+import { ResponsePickUpItemDTO } from './DTO/status.DTO.js';
+
 
 @Injectable()
 export class StatusBombGameService {
-  constructor(private eventEmitter: EventEmitter2, private cacheManager: CacheService) {
-  }
+  constructor(
+    private eventEmitter: EventEmitter2,
+    private cacheManager: CacheService,
+  ) {}
 
   // bomb 게임방에 입장유저
-  bombGameRoomPosition: Map<string, { x: number, y: number, avatar: number, nickname: string, isStun: number, isPlay: number, isDead: number }> = new Map();
+  bombGameRoomPosition: Map<
+    string,
+    {
+      x: number;
+      y: number;
+      avatar: number;
+      nickname: string;
+      isStun: number;
+      isPlay: number;
+      isDead: number;
+    }
+  > = new Map();
   // bomb 게임 플레이유저중 생존자들
   private playGameUser: Set<string> = new Set();
   // bomb 게임 플레이유저중 죽은자들
@@ -26,6 +40,7 @@ export class StatusBombGameService {
   private TAG_HOLD_DURATION_MS: number = 1500;
   private TIMER_INTERVAL_MS: number = 1000;
 
+
   //----아이템 생성 좌표 ----//
   private HOUSE_HILL_BRIDGE_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 2304, y: 160 ,isNotExist:true };
   private WATER_BRIDGE_CENTER_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 1120, y: 1824 ,isNotExist:true };
@@ -34,8 +49,9 @@ export class StatusBombGameService {
 
   private logger: Logger = new Logger("BombGameService");
 
+
   getBombGamePlayerMap() {
-    return this.bombGameRoomPosition
+    return this.bombGameRoomPosition;
   }
 
   getPlayGameUserList(): string[] {
@@ -81,48 +97,71 @@ export class StatusBombGameService {
         return;
       }
 
-      const userWithinRadius = this.getPlayGameUserList().filter((user) => {
-        return !this.bombUserList.has(user);
-      }).find(user => {
-        const player = this.bombGameRoomPosition.get(user);
-        const distance = Math.sqrt(Math.pow(myPosition.x - player.x, 2) + Math.pow(myPosition.y - player.y, 2));
-        return distance <= this.BOMB_RADIUS;
-      });
+      const userWithinRadius = this.getPlayGameUserList()
+        .filter((user) => {
+          return !this.bombUserList.has(user);
+        })
+        .find((user) => {
+          const player = this.bombGameRoomPosition.get(user);
+          const distance = Math.sqrt(
+            Math.pow(myPosition.x - player.x, 2) +
+              Math.pow(myPosition.y - player.y, 2),
+          );
+          return distance <= this.BOMB_RADIUS;
+        });
 
       if (userWithinRadius) {
         this.bombUserList.delete(clientId);
-        this.deadPlayers.forEach(userId => {
+        this.deadPlayers.forEach((userId) => {
           this.bombUserList.delete(userId);
         });
         this.bombUserList.set(userWithinRadius, 1);
 
         //신호 보내기
-        this.eventEmitter.emit("bombGame.changeBombUser", [userWithinRadius, clientId]);
-        this.logger.error(`Updated bombUserList: ${JSON.stringify(Array.from(this.bombUserList.entries()))}`);
+        this.eventEmitter.emit('bombGame.changeBombUser', [
+          userWithinRadius,
+          clientId,
+        ]);
+        this.logger.error(
+          `Updated bombUserList: ${JSON.stringify(Array.from(this.bombUserList.entries()))}`,
+        );
 
         // 1.5초 뒤에 userWithinRadius의 값을 0으로 설정하는 비동기 작업 수행
         setTimeout(() => {
           this.bombUserList.set(userWithinRadius, 0);
         }, this.TAG_HOLD_DURATION_MS);
       }
-    } else { // 폭탄유저가 아니라면
-      const userWithinRadius = this.getPlayGameUserList().filter((user) => {
-        return this.bombUserList.has(user);
-      }).find(user => {
-        const player = this.bombGameRoomPosition.get(user);
-        const distance = Math.sqrt(Math.pow(myPosition.x - player.x, 2) + Math.pow(myPosition.y - player.y, 2));
-        return distance <= this.BOMB_RADIUS && this.bombUserList.get(user) === 0;
-      });
+    } else {
+      // 폭탄유저가 아니라면
+      const userWithinRadius = this.getPlayGameUserList()
+        .filter((user) => {
+          return this.bombUserList.has(user);
+        })
+        .find((user) => {
+          const player = this.bombGameRoomPosition.get(user);
+          const distance = Math.sqrt(
+            Math.pow(myPosition.x - player.x, 2) +
+              Math.pow(myPosition.y - player.y, 2),
+          );
+          return (
+            distance <= this.BOMB_RADIUS && this.bombUserList.get(user) === 0
+          );
+        });
 
       if (userWithinRadius) {
         this.bombUserList.delete(userWithinRadius);
-        this.deadPlayers.forEach(userId => {
+        this.deadPlayers.forEach((userId) => {
           this.bombUserList.delete(userId);
         });
         this.bombUserList.set(clientId, 1);
 
-        this.eventEmitter.emit("bombGame.changeBombUser", [clientId, userWithinRadius]);
-        this.logger.fatal(`Updated bombUserList: ${JSON.stringify(Array.from(this.bombUserList.keys()))}`);
+        this.eventEmitter.emit('bombGame.changeBombUser', [
+          clientId,
+          userWithinRadius,
+        ]);
+        this.logger.fatal(
+          `Updated bombUserList: ${JSON.stringify(Array.from(this.bombUserList.keys()))}`,
+        );
 
         // 1초 뒤에 userWithinRadius의 값을 0으로 설정하는 비동기 작업 수행
         setTimeout(() => {
@@ -132,7 +171,6 @@ export class StatusBombGameService {
     }
   }
 
-
   checkIsNotPlayer(userId: string) {
     return !this.playGameUser.has(userId);
   }
@@ -140,7 +178,9 @@ export class StatusBombGameService {
   startBombGameWithTimer(): void {
     const clientsInRoom: Set<string> = new Set();
 
-    this.logger.warn(`bbombGameRoomPosition = > ${Array.from(this.bombGameRoomPosition.keys())}`)
+    this.logger.warn(
+      `bbombGameRoomPosition = > ${Array.from(this.bombGameRoomPosition.keys())}`,
+    );
 
     for (const [client, position] of this.bombGameRoomPosition.entries()) {
       clientsInRoom.add(client);
@@ -151,11 +191,19 @@ export class StatusBombGameService {
     //게임 시작유저 + 폭탄유저 설정
     this.setPlayGameUser(clientsInRoom);
 
-    this.logger.warn(`Bomb game started in room bomb and userlist ${this.getPlayGameUserList()}`);
+    this.logger.warn(
+      `Bomb game started in room bomb and userlist ${this.getPlayGameUserList()}`,
+    );
 
-    this.logger.warn(` this.getBombUserList()  ==== >  ${this.getBombUserList()}`);
+    this.logger.warn(
+      ` this.getBombUserList()  ==== >  ${this.getBombUserList()}`,
+    );
 
-    this.eventEmitter.emit("bombGame.start", this.getPlayGameUserList(), this.getBombUserList());
+    this.eventEmitter.emit(
+      'bombGame.start',
+      this.getPlayGameUserList(),
+      this.getBombUserList(),
+    );
 
     let remainingTime = this.BOMB_TIME;
 
@@ -164,19 +212,21 @@ export class StatusBombGameService {
 
     const timerInterval = setInterval(() => {
       remainingTime -= 1;
-      this.eventEmitter.emit("bombGame.timer", remainingTime);
+      this.eventEmitter.emit('bombGame.timer', remainingTime);
 
       this.logger.debug(`bombTimer ${remainingTime}`);
       if (remainingTime <= 0) {
-        this.eventEmitter.emit("bombGame.timer", remainingTime);
+        this.eventEmitter.emit('bombGame.timer', remainingTime);
 
-        const bombUserMapToList: string[] = Array.from(this.bombUserList.keys());
+        const bombUserMapToList: string[] = Array.from(
+          this.bombUserList.keys(),
+        );
 
         this.logger.log(`bombUserMapToList ${bombUserMapToList}`);
-        this.eventEmitter.emit("bombGame.deadUsers", bombUserMapToList);
+        this.eventEmitter.emit('bombGame.deadUsers', bombUserMapToList);
 
         this.deleteBombUserInPlayUserList(bombUserMapToList);
-        Array.from(this.bombUserList.keys()).forEach(userId => {
+        Array.from(this.bombUserList.keys()).forEach((userId) => {
           this.deadPlayers.push(userId);
           // userId에 해당하는 값을 가져옴
           const player = this.bombGameRoomPosition.get(userId);
@@ -191,7 +241,7 @@ export class StatusBombGameService {
         const checkWinner = this.checkWinner();
         if (checkWinner) {
           this.logger.debug(`checkWinner ${JSON.stringify(checkWinner)}`);
-          this.eventEmitter.emit("bombGame.winner", checkWinner);
+          this.eventEmitter.emit('bombGame.winner', checkWinner);
           this.bombGameRoomPosition.forEach((value) => {
             value.isPlay = 0;
             value.isDead = 0;
@@ -208,7 +258,7 @@ export class StatusBombGameService {
 
         this.logger.debug(`newBombUser ${newBombUsers}`);
 
-        this.eventEmitter.emit("bombGame.newBombUsers", newBombUsers);
+        this.eventEmitter.emit('bombGame.newBombUsers', newBombUsers);
 
         remainingTime = this.BOMB_TIME;
 
@@ -247,7 +297,7 @@ export class StatusBombGameService {
     this.playUserCount = this.playGameUser.size;
 
     // 랜덤으로 폭탄 유저를 선정
-    this.selectRandomBombUsers().forEach(userId => {
+    this.selectRandomBombUsers().forEach((userId) => {
       this.bombUserList.set(userId, 0);
     });
 
@@ -256,14 +306,14 @@ export class StatusBombGameService {
 
   private getNewBombUsers(): Map<string, number> {
     this.bombUserList.clear();
-    this.selectRandomBombUsers().forEach(userId => {
+    this.selectRandomBombUsers().forEach((userId) => {
       this.bombUserList.set(userId, 0);
     });
     return this.bombUserList;
   }
 
   private deleteBombUserInPlayUserList(bombList: string[]) {
-    bombList.forEach(userId => {
+    bombList.forEach((userId) => {
       this.playGameUser.delete(userId);
     });
     this.playUserCount = this.playGameUser.size;
@@ -349,4 +399,3 @@ export class StatusBombGameService {
     return Math.floor(Math.random() * 3);
   }
 }
-

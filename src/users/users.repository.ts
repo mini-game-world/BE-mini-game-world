@@ -1,14 +1,14 @@
-import { InjectModel } from "@nestjs/mongoose";
-import { Model } from "mongoose";
-import { User } from "./schema/users.schema";
-import { Injectable } from "@nestjs/common";
-import { CreateCommonUserDTO } from "./DTO/users.DTO";
-
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { User } from './schema/users.schema.js';
+import { Injectable } from '@nestjs/common';
+import { CreateCommonUserDTO } from './DTO/users.DTO.js';
 
 @Injectable()
 export class UsersRepository {
-  constructor(@InjectModel(User.name) private readonly userModel: Model<User>) {
-  }
+  constructor(
+    @InjectModel(User.name) private readonly userModel: Model<User>,
+  ) {}
 
   async createCommonUser(createUserDto: CreateCommonUserDTO): Promise<User> {
     const newUser = new this.userModel(createUserDto);
@@ -18,5 +18,4 @@ export class UsersRepository {
   async findUserByName(nickname: string) {
     return await this.userModel.findOne({ nickname }).exec();
   }
-
 }
