@@ -18,7 +18,6 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private CHECK_INTERVAL = 5000;
   private MIN_PLAYERS_FOR_BOMB_GAME = 3; // 최소 플레이어 수, 예시로 4명 설정
   private isCheckingBombRooms = false; // checkBombRooms 실행 여부를 추적
-  private io: any;
   constructor(
     private readonly statusService: StatusBombGameService,
     private readonly randomNicknameService: RandomNicknameService,
@@ -179,7 +178,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     });
 
     // 히트 결과를 해당 룸의 모든 클라이언트에게 알림
-    this.io.emit("attackedPlayers", hitResults);
+    this.geckosIoService.io.emit("attackedPlayers", hitResults);
 
     // 공격중인 유저를 모두에게 전파(화면에 공격중인것을 표시하기 위해)
     channel.broadcast.emit("attackPlayer", channel.id);
@@ -198,29 +197,29 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   bombGameStart() {
     this.bombGameStartFlag = 1;
-    this.io.emit("playingGame", this.bombGameStartFlag);
+    this.geckosIoService.io.emit("playingGame", this.bombGameStartFlag);
     this.statusService.startBombGameWithTimer();
   }
 
   @OnEvent("bombGame.start")
   handleBombGameStart(playGameUserList: string[], bombUserList: string[]) {
-    this.io.emit("bombUsers", bombUserList);
+    this.geckosIoService.io.emit("bombUsers", bombUserList);
   }
 
   @OnEvent("bombGame.timer")
   handleBombGameTimer(remainingTime: number) {
-    this.io.emit("bombTimer", { remainingTime });
+    this.geckosIoService.io.emit("bombTimer", { remainingTime });
   }
 
   @OnEvent("bombGame.deadUsers")
   handleBombGameDeadUsers(bombUserList: string[]) {
-    this.io.emit("deadUsers", bombUserList);
+    this.geckosIoService.io.emit("deadUsers", bombUserList);
   }
 
   @OnEvent("bombGame.newBombUsers")
   handleBombGameNewBombUsers(bombUserList: string[]) {
     this.logger.log(`새로운 폭탄멤버는 ${bombUserList}`);
-    this.io.emit("bombUsers", bombUserList);
+    this.geckosIoService.io.emit("bombUsers", bombUserList);
   }
 
   @OnEvent("bombGame.changeBombUser")
@@ -228,7 +227,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     this.logger.log(`${changeBombUserList[1]}에서 ${changeBombUserList[0]}으로 폭탄이 옮겨졌습니다.`);
     //폭탄 옮긴유저 카운트
     this.rankService.processEvent({ playerId: changeBombUserList[1], eventType: this.rankService.BOMB })
-    this.io.emit("changeBombUser", changeBombUserList);
+    this.geckosIoService.io.emit("changeBombUser", changeBombUserList);
   }
 
   @OnEvent("bombGame.winner")
@@ -244,11 +243,11 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       };
       this.logger.log("gameResult", result);
       this.rankService.gameEnd();
-      this.io.emit("gameWinner", result);
+      this.geckosIoService.io.emit("gameWinner", result);
     }
     setTimeout(() => {
       this.bombGameStartFlag = 0;
-      this.io.emit("playingGame", this.bombGameStartFlag);
+      this.geckosIoService.io.emit("playingGame", this.bombGameStartFlag);
     }, 15000);
   }
 
@@ -269,9 +268,9 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       // Return a new Promise that resolves when the countdown finishes
       await new Promise<void>((resolve) => {
         const countdownInterval = setInterval(() => {
-          this.io.emit("bombGameReady", countdown);
+          this.geckosIoService.io.emit("bombGameReady", countdown);
           if (!this.isBombGameStart()) {
-            this.io.emit("bombGameReady", -1);
+            this.geckosIoService.io.emit("bombGameReady", -1);
             clearInterval(countdownInterval);
             resolve();
             return;
@@ -283,7 +282,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
             if (this.isBombGameStart()) {
               this.bombGameStart();
             } else {
-              this.io.emit("bombGameReady", -1);
+              this.geckosIoService.io.emit("bombGameReady", -1);
             }
             resolve(); // Resolve the Promise here
           }

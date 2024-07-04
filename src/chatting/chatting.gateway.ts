@@ -15,7 +15,6 @@ export class ChattingGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
   private logger: Logger = new Logger('Chatting-Gateway');
-  private io: any;
 
   constructor(
     private readonly chattingService: ChattingService,
@@ -58,7 +57,7 @@ export class ChattingGateway
 
     this.logger.log(`[Chatting message] ${nickname} : ${sendMessage} `);
 
-    this.io.emit('broadcastMessage', {
+    this.geckosIoService.io.emit('broadcastMessage', {
       playerId: channel.id,
       nickname: nickname,
       message: sendMessage,
