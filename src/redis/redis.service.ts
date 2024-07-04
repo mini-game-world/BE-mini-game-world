@@ -6,8 +6,7 @@ dotenv.config();
 
 @Injectable()
 export class RedisService {
-  private readonly client: Redis.default;  // 타입을 명확히 지정
-
+  // private readonly client: Redis.default; // 타입을 명확히 지정
   constructor() {
     // this.client = new Redis.default({
     //   host: process.env.REDIS_HOST,
@@ -15,7 +14,7 @@ export class RedisService {
     // });
   }
 
-  getClient(): Redis.default {
-    return this.client;
-  }
+  // getClient(): Redis.default {
+  //   return this.client;
+  // }
 }

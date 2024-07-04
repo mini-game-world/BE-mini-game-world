@@ -21,14 +21,13 @@ export class LoginCommonUserDTO {
   password: string;
 }
 
-
 export class CreateCommonUserDTO {
   @IsString()
   @IsNotEmpty()
   nickname: string;
 
   @IsString()
-  randomNickname:string;
+  randomNickname: string;
 
   @IsString()
   @IsNotEmpty()
@@ -64,5 +63,4 @@ class CreateCommonUserDTOBuilder {
   build(): CreateCommonUserDTO {
     return this.createCommonUserDTO;
   }
-
 }

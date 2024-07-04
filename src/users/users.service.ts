@@ -5,15 +5,15 @@ import {
   Logger,
   UnauthorizedException,
 } from '@nestjs/common';
-import { UsersRepository } from './users.repository';
+import { UsersRepository } from './users.repository.js';
 import {
   RequestCreateCommonUserDTO,
   LoginCommonUserDTO,
   CreateCommonUserDTO,
-} from './DTO/users.DTO';
-import { User } from './schema/users.schema';
-import { AuthService } from '../auth/auth.service';
-import { RandomNicknameService } from '../random-nickname/random-nickname.service';
+} from './DTO/users.DTO.js';
+import { User } from './schema/users.schema.js';
+import { AuthService } from '../auth/auth.service.js';
+import { RandomNicknameService } from '../random-nickname/random-nickname.service.js';
 
 @Injectable()
 export class UsersService {
