@@ -23,19 +23,14 @@ export class ChattingGateway
     private readonly geckosIoService: GeckosIoService
   ) {}
 
-  onModuleInit() {
-    if (this.geckosIoService.io) {
-      this.logger.log('Geckos.io server is already initialized');
-      this.geckosIoService.io.onConnection((channel: any) => {
-        this.handleConnection(channel);
-      });
-    } else {
-      this.logger.error('Geckos.io server is not initialized');
-    }
-  }
-
-  afterInit() {
+  async afterInit() {
     this.logger.log('Init StatusGateway');
+
+    await this.geckosIoService.waitForInitialization();
+
+    this.geckosIoService.io.onConnection((channel: any) => {
+      this.handleConnection(channel);
+    });
   }
 
   handleConnection(channel: any) {
