@@ -266,6 +266,12 @@ export class statusGateway
     this.server.emit('newItems', itemDotList);
   }
 
+  @OnEvent('bombGame.itemPickedUp')
+  itemPickedUp(item) {
+    this.logger.log(`먹은 아이템 ==> ${JSON.stringify(item)}`);
+    this.server.emit('itemPickedUp', item);
+  }
+
   private safeCheckBombRooms() {
     if (this.isCheckingBombRooms) {
       return;

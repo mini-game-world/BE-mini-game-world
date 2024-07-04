@@ -324,8 +324,9 @@ export class StatusBombGameService {
     items.forEach(item => {
       if (!item.isNotExist && this.isWithinRadius(item, x, y, this.ITEM_RADIUS)) {
         item.isNotExist = true;
-        this.eventEmitter.emit('bombGame.itemPickedUp', clientId, item);
-        this.logger.log(`${this.bombGameRoomPosition.get(clientId).nickname} 아이템 획득 (${item.x}, ${item.y})`);
+        const itemNumber: number = this.randomItemNumber();
+        this.eventEmitter.emit('bombGame.itemPickedUp',{ playerId:clientId,  item:itemNumber ,  x: item.x, y: item.y });
+        this.logger.log(`${this.bombGameRoomPosition.get(clientId).nickname}  ${itemNumber} 가 번 아이템 획득 (${item.x}, ${item.y})`);
       }
     });
   }
@@ -333,6 +334,10 @@ export class StatusBombGameService {
   private isWithinRadius(item: { x: number; y: number }, x: number, y: number, radius: number): boolean {
     const distance = Math.sqrt(Math.pow(item.x - x, 2) + Math.pow(item.y - y, 2));
     return distance <= radius;
+  }
+
+  private randomItemNumber() {
+    return Math.floor(Math.random() * 3);
   }
 }
 
