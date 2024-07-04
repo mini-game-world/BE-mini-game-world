@@ -26,7 +26,6 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   ) {
     setInterval(this.safeCheckBombRooms.bind(this), this.CHECK_INTERVAL);
   }
-
   private logger: Logger = new Logger("Status-Gateway");
 
 
@@ -142,6 +141,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       return;
     }
 
+
     this.logger.log(`Client ${channel.id} attacked position x: ${data.x}, y: ${data.y}`);
 
     // 같은 방의 다른 클라이언트들의 위치와 비교하여 히트된 유저들의 아이디만 추출
@@ -149,15 +149,21 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       .filter(([playerId]) => playerId !== channel.id)
       .filter(([playerId]) => {
         // Exclude users in bombUserList
-        return !this.statusService.getBombUserList().includes(playerId) || !this.statusService.checkIsNotPlayer(playerId);
+        return (
+          !this.statusService.getBombUserList().includes(playerId) ||
+          !this.statusService.checkIsNotPlayer(playerId)
+        );
       })
       .filter(([_, pos]) => {
-        const distance = Math.sqrt(Math.pow(data.x - pos.x, 2) + Math.pow(data.y - pos.y, 2));
+        const distance = Math.sqrt(
+          Math.pow(data.x - pos.x, 2) + Math.pow(data.y - pos.y, 2),
+        );
         return distance <= this.HITRADIUS;
       })
       .filter(([playerId]) => {
         // Check if the player is not stunned
-        const playerData = this.statusService.bombGameRoomPosition.get(playerId);
+        const playerData =
+          this.statusService.bombGameRoomPosition.get(playerId);
         return playerData && playerData.isStun !== 1;
       })
       .map(([playerId]) => playerId);
@@ -201,36 +207,38 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     this.statusService.startBombGameWithTimer();
   }
 
-  @OnEvent("bombGame.start")
+  @OnEvent('bombGame.start')
   handleBombGameStart(playGameUserList: string[], bombUserList: string[]) {
     this.geckosIoService.io.emit("bombUsers", bombUserList);
   }
 
-  @OnEvent("bombGame.timer")
+  @OnEvent('bombGame.timer')
   handleBombGameTimer(remainingTime: number) {
     this.geckosIoService.io.emit("bombTimer", { remainingTime });
   }
 
-  @OnEvent("bombGame.deadUsers")
+  @OnEvent('bombGame.deadUsers')
   handleBombGameDeadUsers(bombUserList: string[]) {
     this.geckosIoService.io.emit("deadUsers", bombUserList);
   }
 
-  @OnEvent("bombGame.newBombUsers")
+  @OnEvent('bombGame.newBombUsers')
   handleBombGameNewBombUsers(bombUserList: string[]) {
     this.logger.log(`새로운 폭탄멤버는 ${bombUserList}`);
     this.geckosIoService.io.emit("bombUsers", bombUserList);
   }
 
-  @OnEvent("bombGame.changeBombUser")
+  @OnEvent('bombGame.changeBombUser')
   handleBombGameChangeBombUsers(changeBombUserList: string[]) {
-    this.logger.log(`${changeBombUserList[1]}에서 ${changeBombUserList[0]}으로 폭탄이 옮겨졌습니다.`);
+    this.logger.log(
+      `${changeBombUserList[1]}에서 ${changeBombUserList[0]}으로 폭탄이 옮겨졌습니다.`,
+    );
     //폭탄 옮긴유저 카운트
     this.rankService.processEvent({ playerId: changeBombUserList[1], eventType: this.rankService.BOMB })
     this.geckosIoService.io.emit("changeBombUser", changeBombUserList);
   }
 
-  @OnEvent("bombGame.winner")
+  @OnEvent('bombGame.winner')
   handleBombGameWinner(winner: string[]) {
     if (winner) {
       const gameWinner = winner[0];
@@ -249,6 +257,19 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       this.bombGameStartFlag = 0;
       this.geckosIoService.io.emit("playingGame", this.bombGameStartFlag);
     }, 15000);
+  }
+
+  @OnEvent('bombGame.newItems')
+  makeNewItem(itemDotList) {
+    if (itemDotList.length === 0) return;
+    this.logger.log(`새로 생성된 아이템 ==> ${JSON.stringify(itemDotList)}`);
+    this.geckosIoService.io.emit('newItems', itemDotList);
+  }
+
+  @OnEvent('bombGame.itemPickedUp')
+  itemPickedUp(item) {
+    this.logger.log(`먹은 아이템 ==> ${JSON.stringify(item)}`);
+    this.geckosIoService.io.emit('itemPickedUp', item);
   }
 
   private safeCheckBombRooms() {
@@ -292,7 +313,11 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   private isBombGameStart(): boolean {
-    if (this.statusService.getBombGamePlayerMap().size >= this.MIN_PLAYERS_FOR_BOMB_GAME && !this.bombGameStartFlag) {
+    if (
+      this.statusService.getBombGamePlayerMap().size >=
+        this.MIN_PLAYERS_FOR_BOMB_GAME &&
+      !this.bombGameStartFlag
+    ) {
       return true;
     }
     return false;

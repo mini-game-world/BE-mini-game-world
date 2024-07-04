@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CacheService } from '../cache/cache.service.js';
+import { ResponsePickUpItemDTO } from './DTO/status.DTO.js';
+
 
 @Injectable()
 export class StatusBombGameService {
@@ -38,7 +40,15 @@ export class StatusBombGameService {
   private TAG_HOLD_DURATION_MS: number = 1500;
   private TIMER_INTERVAL_MS: number = 1000;
 
-  private logger: Logger = new Logger('BombGameService');
+
+  //----아이템 생성 좌표 ----//
+  private HOUSE_HILL_BRIDGE_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 2304, y: 160 ,isNotExist:true };
+  private WATER_BRIDGE_CENTER_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 1120, y: 1824 ,isNotExist:true };
+  private TREASURE_CHEST_HILL_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 3328, y: 512 ,isNotExist:true };
+  private readonly ITEM_RADIUS: number = 80;
+
+  private logger: Logger = new Logger("BombGameService");
+
 
   getBombGamePlayerMap() {
     return this.bombGameRoomPosition;
@@ -46,6 +56,15 @@ export class StatusBombGameService {
 
   getPlayGameUserList(): string[] {
     return Array.from(this.playGameUser);
+  }
+
+  setBombGameRoomPosition(clientId: string, x: number, y: number){
+    const status = this.bombGameRoomPosition.get(clientId);
+    if (status) {
+      status.x = x;
+      status.y = y;
+      this.bombGameRoomPosition.set(clientId, status);
+    }
   }
 
   async disconnectBombUser(deleteUserId: string) {
@@ -63,7 +82,13 @@ export class StatusBombGameService {
     this.bombUserList.delete(deleteUserId);
   }
 
-  checkOverlappingUser(clientId: string, x: number, y: number) {
+  checkOverlappingBombUser(clientId: string, x: number, y: number) {
+    if (this.bombUserList.size === 0) {
+      return;
+    }
+    if (this.checkIsNotPlayer(clientId)) {
+      return;
+    }
     const myPosition = { x: x, y: y };
 
     // 이 유저가 폭탄 유저라면
@@ -181,12 +206,15 @@ export class StatusBombGameService {
     );
 
     let remainingTime = this.BOMB_TIME;
+
+    //게임 아이템 상태 초기화
+    this.setGameItemStatus();
+
     const timerInterval = setInterval(() => {
       remainingTime -= 1;
       this.eventEmitter.emit('bombGame.timer', remainingTime);
 
       this.logger.debug(`bombTimer ${remainingTime}`);
-
       if (remainingTime <= 0) {
         this.eventEmitter.emit('bombGame.timer', remainingTime);
 
@@ -233,6 +261,9 @@ export class StatusBombGameService {
         this.eventEmitter.emit('bombGame.newBombUsers', newBombUsers);
 
         remainingTime = this.BOMB_TIME;
+
+        //아이템좌표 생성
+        this.makeGameItem();
       }
     }, this.TIMER_INTERVAL_MS);
   }
@@ -296,5 +327,75 @@ export class StatusBombGameService {
       return this.getPlayGameUserList();
     }
     return null;
+  }
+
+  private makeGameItem() {
+    const itemDotList = [];
+    if (this.HOUSE_HILL_BRIDGE_ITEM.isNotExist) {
+      this.HOUSE_HILL_BRIDGE_ITEM.isNotExist = false;
+      itemDotList.push({
+        x: this.HOUSE_HILL_BRIDGE_ITEM.x,
+        y: this.HOUSE_HILL_BRIDGE_ITEM.y,
+      });
+    }
+    if (this.WATER_BRIDGE_CENTER_ITEM.isNotExist) {
+      this.WATER_BRIDGE_CENTER_ITEM.isNotExist = false;
+      itemDotList.push({
+        x: this.WATER_BRIDGE_CENTER_ITEM.x,
+        y: this.WATER_BRIDGE_CENTER_ITEM.y,
+      });
+    }
+    if (this.TREASURE_CHEST_HILL_ITEM.isNotExist) {
+      this.TREASURE_CHEST_HILL_ITEM.isNotExist = false;
+      itemDotList.push({
+        x: this.TREASURE_CHEST_HILL_ITEM.x,
+        y: this.TREASURE_CHEST_HILL_ITEM.y,
+      });
+    }
+
+    this.eventEmitter.emit("bombGame.newItems", itemDotList);
+  }
+
+  private setGameItemStatus(){
+    this.HOUSE_HILL_BRIDGE_ITEM.isNotExist = true;
+    this.WATER_BRIDGE_CENTER_ITEM.isNotExist = true;
+    this.TREASURE_CHEST_HILL_ITEM.isNotExist = true;
+  }
+
+  checkOverlappingItemUser(clientId: string, x: number, y: number) {
+    if (this.checkIsNotPlayer(clientId)) {
+      return;
+    }
+    const items = [
+      this.HOUSE_HILL_BRIDGE_ITEM,
+      this.WATER_BRIDGE_CENTER_ITEM,
+      this.TREASURE_CHEST_HILL_ITEM,
+    ];
+
+    items.forEach(item => {
+      if (!item.isNotExist && this.isWithinRadius(item, x, y, this.ITEM_RADIUS)) {
+        item.isNotExist = true;
+        const itemNumber: number = this.randomItemNumber();
+
+        const responsePickupItem = ResponsePickUpItemDTO.builder()
+          .setPlayerId(clientId)
+          .setItemNumber(itemNumber)
+          .setXDot(item.x)
+          .setYDot(item.y)
+          .build();
+
+        this.logger.log(`${this.bombGameRoomPosition.get(clientId).nickname} -> ${itemNumber} 번 아이템 획득 (${item.x}, ${item.y})`);
+        this.eventEmitter.emit('bombGame.itemPickedUp', responsePickupItem);
+      }
+    });
+  }
+
+  private isWithinRadius(item: { x: number; y: number }, x: number, y: number, radius: number): boolean {
+    const distance = Math.sqrt(Math.pow(item.x - x, 2) + Math.pow(item.y - y, 2));
+    return distance <= radius;
+  }
+
+  private randomItemNumber() {
+    return Math.floor(Math.random() * 3);
   }
 }
