@@ -43,7 +43,7 @@ jobs:
         run: docker build -t nest-app .
 
       - name: ECR에 Docker 이미지 Push하기
-        run: docker push nest-app:latest
+        run: docker push ${{ steps.login-ecr.outputs.registry }}/nest-app:latest
 
       - name: SSH로 EC2에 접속하여 도커 컴포즈 파일과 .env 파일 복사 및 Docker Compose 실행
         uses: appleboy/scp-action@v0.1.1
