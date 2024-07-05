@@ -40,10 +40,10 @@ jobs:
         run: docker build -t minigameworld .
 
       - name: Docker 이미지에 Tag 붙이기
-        run: docker tag minigameworld public.ecr.aws/q4a7b9h0/minigameworld:latest
+        run: docker tag minigameworld ${{ steps.login-ecr.outputs.registry }}/minigameworld:latest
 
       - name: ECR에 Docker 이미지 Push하기
-        run: docker push public.ecr.aws/q4a7b9h0/minigameworld:latest
+        run: docker push ${{ steps.login-ecr.outputs.registry }}/minigameworld:latest
 
       - name: SSH로 EC2에 접속하기
         uses: appleboy/ssh-action@v1.0.3
@@ -53,6 +53,8 @@ jobs:
             key: ${{ secrets.EC2_PRIVATE_KEY }}
             script_stop: true
             script: |
-              docker pull public.ecr.aws/q4a7b9h0 || true
+              docker pull ${{ steps.login-ecr.outputs.registry }}/minigameworld:latest || true
               docker-compose down || true
               docker-compose up -d
+
+    
