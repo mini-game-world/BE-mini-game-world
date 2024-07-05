@@ -9,7 +9,7 @@ import { CacheModule } from './cache/cache.module.js';
 import { RedisModule } from './redis/redis.module.js';
 import { ChattingModule } from './chatting/chatting.module.js';
 import { GeckosIoModule } from './geckos/geckos.module.js';
-import { SocketMetricsGateway } from './socket-metrics/socket-metrics.gateway.js';
+import { SocketMetricsModule } from './socket-metrics/socket-metrics.module.js';
 
 import * as dotenv from 'dotenv';
 
@@ -27,7 +27,7 @@ dotenv.config();
     RedisModule,
     ChattingModule,
     GeckosIoModule,
+    SocketMetricsModule,
   ],
-  providers: [SocketMetricsGateway],
 })
 export class AppModule {}
