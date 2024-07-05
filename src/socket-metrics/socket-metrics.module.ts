@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { GeckosIoModule } from '@src/geckos/geckos.module.js';
-import { SocketMetricsGateway } from '@src/socket-metrics/socket-metrics.gateway.js';
+import { GeckosIoModule } from '../geckos/geckos.module.js';
+import { SocketMetricsGateway } from './socket-metrics.gateway.js';
 import { makeCounterProvider, makeGaugeProvider, PrometheusModule } from '@willsoto/nestjs-prometheus';
 
 @Module({
