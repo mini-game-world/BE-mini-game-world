@@ -94,9 +94,12 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   handleDisconnect(channel: any): any {
-    this.generator.restoreNumber(
-      this.statusService.bombGameRoomPosition.get(channel.id).avatar,
-    );
+    const position = this.statusService.bombGameRoomPosition.get(channel.id);
+    if (position) {
+        this.generator.restoreNumber(position.avatar);
+    } else {
+        console.error(`Channel ID ${channel.id} not found in bombGameRoomPosition.`);
+    }
     channel.broadcast.emit("playerDisconnected", channel.id);
     this.statusService.disconnectBombUser(channel.id);
 
