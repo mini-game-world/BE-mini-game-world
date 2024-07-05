@@ -5,6 +5,7 @@ services:
     build: .
     ports:
       - "3000:3000"
+      - "0:65535/udp"
     networks:
       - monitoring
 
