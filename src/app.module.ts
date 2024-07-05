@@ -9,6 +9,7 @@ import { CacheModule } from './cache/cache.module.js';
 import { RedisModule } from './redis/redis.module.js';
 import { ChattingModule } from './chatting/chatting.module.js';
 import { GeckosIoModule } from './geckos/geckos.module.js';
+import { SocketMetricsGateway } from './socket-metrics/socket-metrics.gateway.js';
 
 import * as dotenv from 'dotenv';
 
@@ -17,7 +18,6 @@ dotenv.config();
 @Module({
   imports: [
     MongooseModule.forRoot(process.env.MONGO_URI),
-    PrometheusModule.register(),
     StatusModule,
     UsersModule,
     GuestModule,
@@ -28,15 +28,6 @@ dotenv.config();
     ChattingModule,
     GeckosIoModule,
   ],
-  providers: [
-    makeCounterProvider({
-      name: 'websocket_connections_total',
-      help: 'Total number of websocket connections',
-    }),
-  ],
+  providers: [SocketMetricsGateway],
 })
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(SocketMetricsMiddleware).forRoutes('*'); // 모든 경로에 대해 미들웨어를 적용합니다.
-  }
-}
+export class AppModule {}
