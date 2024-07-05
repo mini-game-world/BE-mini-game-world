@@ -45,14 +45,14 @@ jobs:
       - name: ECR에 Docker 이미지 Push하기
         run: docker push ${{ steps.login-ecr.outputs.registry }}/minigameworld:latest
 
-      - name: SSH로 EC2에 접속하여 Docker Compose 실행
+      - name: SSH로 EC2에 접속하기
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_PRIVATE_KEY }}
-          script_stop: true
-          script: |
-            cd /home/${{ secrets.EC2_USERNAME }}
-            docker-compose down
-            docker-compose up -d
+            host: ${{ secrets.EC2_HOST }}
+            username: ${{ secrets.EC2_USERNAME }}
+            key: ${{ secrets.EC2_PRIVATE_KEY }}
+            script_stop: true
+            script: |
+              docker pull ${{ steps.login-ecr.outputs.registry }}/minigameworld:latest || true
+              docker-compose down || true
+              docker-compose up -d
