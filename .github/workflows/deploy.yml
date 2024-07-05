@@ -40,7 +40,7 @@ jobs:
         run: docker build -t minigameworld .
 
       - name: Docker 이미지에 Tag 붙이기
-        run: docker tag minigameworld ${{ steps.login-ecr.outputs.registry }}/minigameworld:latest
+        run: docker tag minigameworld public.ecr.aws/q4a7b9h0/minigameworld:latest
 
       - name: ECR에 Docker 이미지 Push하기
         run: docker push public.ecr.aws/q4a7b9h0/minigameworld:latest
