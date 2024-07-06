@@ -1,12 +1,13 @@
 import { SetWaitingRoomPositionDTO } from '../status.DTO.js';
+import { flatMap } from 'rxjs';
 
 export class SetWaitingRoomPositionBuilder {
   private readonly setWaitingRoomPositionDTO: SetWaitingRoomPositionDTO;
-  private playerId: string;
-  private x: number;
-  private y: number;
-  private avatar: number;
-  private nickname: string;
+  private isPlayerId: boolean = false;
+  private isX: boolean = false;
+  private isY: boolean = false;
+  private isAvatar: boolean = false;
+  private isNickname: boolean = false;
 
   constructor() {
     this.setWaitingRoomPositionDTO = new SetWaitingRoomPositionDTO();
@@ -14,31 +15,36 @@ export class SetWaitingRoomPositionBuilder {
 
   setPlayerId(socketId: string): SetWaitingRoomPositionBuilder {
     this.setWaitingRoomPositionDTO.playerId = socketId;
+    this.isPlayerId = true;
     return this;
   }
 
   setAvatar(number: number): SetWaitingRoomPositionBuilder {
     this.setWaitingRoomPositionDTO.avatar = number;
+    this.isAvatar = true;
     return this;
   }
 
   setXDot(xdot: number): SetWaitingRoomPositionBuilder {
     this.setWaitingRoomPositionDTO.x = xdot;
+    this.isX=true;
     return this;
   }
 
   setYDot(ydot: number): SetWaitingRoomPositionBuilder {
     this.setWaitingRoomPositionDTO.y = ydot;
+    this.isY=true;
     return this;
   }
 
   setNickname(nickname: string): SetWaitingRoomPositionBuilder {
     this.setWaitingRoomPositionDTO.nickname = nickname;
+    this.isNickname = true;
     return this;
   }
 
   build(): SetWaitingRoomPositionDTO {
-    if (!this.playerId || this.x === undefined || this.y === undefined || !this.avatar || !this.nickname) {
+    if ( !this.isPlayerId || !this.isX || !this.isY || !this.isAvatar || !this.isNickname) {
       throw new Error('All fields are required');
     }
     return this.setWaitingRoomPositionDTO;
