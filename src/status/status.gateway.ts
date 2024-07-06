@@ -51,29 +51,35 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   async handleConnection(channel: any): Promise<void> {
-    const x = Math.floor(Math.random() * (1760 - 960 + 1)) + 960;
-    const y = Math.floor(Math.random() * (640 - 320 + 1)) + 320;
+    // const x = Math.floor(Math.random() * (1760 - 960 + 1)) + 960;
+    // const y = Math.floor(Math.random() * (640 - 320 + 1)) + 320;
     const randomNum = this.generator.getRandomNumber();
     const randomNickname = await this.randomNicknameService.getRandomNickname();
+    const dot =this.getRandomWaitingRoomPosition()
+    //임시
     this.statusService.bombGameRoomPosition.set(channel.id, {
-      x,
-      y,
+      x:dot.x,
+      y:dot.y,
       avatar: randomNum,
       nickname: randomNickname,
       isStun: 0,
       isPlay: 0,
       isDead: 0,
     });
+
+    //처음들어올시 waiting room 에 입장.
+    this.waitingService.setWaitingRoomPosition(channel.id,dot.x,dot.y,randomNum,randomNickname);
+
     console.log(
       `${JSON.stringify(this.statusService.bombGameRoomPosition.get(channel.id))}`,
     );
 
     channel.join(this.WAITING_ROOM);
 
-    channel.room.emit("newPlayer", {
+    channel.broadcast.emit("newPlayer", {
       playerId: channel.id,
-      x,
-      y,
+      x:dot.x,
+      y:dot.y,
       avatar: randomNum,
       nickname: randomNickname,
       isPlay: 0
@@ -95,6 +101,8 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     );
 
     channel.on('disconnect', () => this.handleDisconnect(channel));
+
+    channel.on('changeRoom', () => this.changeRoom(channel));
   }
 
   handleDisconnect(channel: any): any {
@@ -113,21 +121,20 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   playerPosition(channel: any, data: playerMovementDTO): void {
-    const room = channel._roomId
-
-    switch (room) {
-      case this.WAITING_ROOM:
-        this.waitingService.setWaitingRoomMove(channel.id, data.x, data.y)
-
-
-      case this.PLAY_ROOM:
-        this.statusService.setBombGameRoomPosition(channel.id, data.x, data.y);
-        break;
-    }
     // emits a message to all channels, in the same room, except sender
     channel.broadcast.emit("playerMoved", { playerId: channel.id, x: data.x, y: data.y });
-    this.statusService.checkOverlappingBombUser(channel.id, data.x, data.y);
-    this.statusService.checkOverlappingItemUser(channel.id, data.x, data.y);
+
+    const room = channel._roomId
+    switch (room) {
+      case this.WAITING_ROOM:
+        this.waitingService.setWaitingRoomMove(channel.id, data.x, data.y);
+        break;
+      case this.PLAY_ROOM:
+        this.statusService.setBombGameRoomPosition(channel.id, data.x, data.y);
+        this.statusService.checkOverlappingBombUser(channel.id, data.x, data.y);
+        this.statusService.checkOverlappingItemUser(channel.id, data.x, data.y);
+        break;
+    }
   }
 
   handleAttackPosition(channel: any, data: playerAttackPositionDTO): void {
@@ -327,5 +334,84 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       return true;
     }
     return false;
+  }
+
+  private changeRoom(channel:any) {
+    if(channel._roomId === this.WAITING_ROOM) {
+      channel.leave()
+      channel.join(this.PLAY_ROOM)
+      const x = Math.floor(Math.random() * (1760 - 960 + 1)) + 960;
+      const y = Math.floor(Math.random() * (640 - 320 + 1)) + 320;
+      const player =this.waitingService.getWaitingRoomPosition(channel.id)
+      this.waitingService.disconnectUser(channel.id);
+      /** TODD
+       * 대기방에서 나간 플레이어를 룸전체한테 뿌려주는게필요
+       */
+
+      this.statusService.bombGameRoomPosition.set(channel.id, {
+        x,
+        y,
+        avatar: player.avatar,
+        nickname: player.nickname,
+        isStun: 0,
+        isPlay: 0,
+        isDead: 0,
+      });
+
+      /** TODD
+       *  새로들어온 애는 게임방 정보를 받아야하고
+       *  게임방 애들은 새로들어온애 알아야함.
+       */
+      channel.broadcast.emit("newPlayer", {
+        playerId: channel.id,
+        x,
+        y,
+        avatar: player.avatar,
+        nickname: player.nickname,
+        isPlay: 0
+      });
+      channel.emit('currentPlayers', Object.fromEntries(this.statusService.bombGameRoomPosition),);
+      channel.emit("gamestatus", this.bombGameStartFlag);
+      return
+    }
+    if(channel._roomId === this.PLAY_ROOM) {
+      channel.leave()
+      channel.join(this.WAITING_ROOM)
+      const player = this.statusService.bombGameRoomPosition.get(channel.id);
+      const dot = this.getRandomWaitingRoomPosition()
+      this.waitingService.setWaitingRoomPosition(channel.id,dot.x,dot.y,player.avatar,player.nickname)
+      this.statusService.disconnectBombUser(channel.id);
+      /** TODD
+       * 대기방에서 나간 플레이어를 룸전체한테 뿌려주는게필요
+       */
+      channel.broadcast.emit("newPlayer", {
+        playerId: channel.id,
+        x:dot.x,
+        y:dot.y,
+        avatar: player.avatar,
+        nickname: player.nickname,
+      });
+      channel.emit('currentPlayers',this.waitingService.getAllWaitingRoomUser());
+      return
+    }
+  }
+  private getRandomWaitingRoomPosition() {
+    const xRanges = [
+      { min: 320, max: 639 },
+      { min: 1601, max: 1920 }
+    ];
+
+    const yRanges = [
+      { min: 384, max: 575 },
+      { min: 961, max: 1280 }
+    ];
+
+    const xRange = xRanges[Math.floor(Math.random() * xRanges.length)];
+    const yRange = yRanges[Math.floor(Math.random() * yRanges.length)];
+
+    const x = Math.floor(Math.random() * (xRange.max - xRange.min + 1)) + xRange.min;
+    const y = Math.floor(Math.random() * (yRange.max - yRange.min + 1)) + yRange.min;
+
+    return { x, y };
   }
 }
