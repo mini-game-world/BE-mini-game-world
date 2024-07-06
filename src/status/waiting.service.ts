@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { SetWaitingRoomPositionDTO } from '../status/DTO/status.DTO.js'
 
 @Injectable()
 export class WaitingService {
@@ -11,8 +12,8 @@ export class WaitingService {
 
   private waitingRoomPosition: Map<string, { x: number, y: number, avatar: number, nickname: string, }> = new Map();
 
-  setWaitingRoomPosition(socketID:string,x:number, y:number,avatar:number,nickname:string) {
-    this.waitingRoomPosition.set(socketID,{ x:x,y:y,avatar:avatar,nickname:nickname});
+  setWaitingRoomPosition(user:SetWaitingRoomPositionDTO) {
+    this.waitingRoomPosition.set(user.playerId,{ x:user.x,y:user.y,avatar:user.avatar,nickname:user.nickname});
   }
 
   setWaitingRoomMove(socketID:string,x:number, y:number){

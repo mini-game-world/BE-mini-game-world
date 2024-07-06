@@ -1,4 +1,5 @@
 import { ResponsePickUpItemBuilder } from './builder/responsePickUpItemBuilder.js';
+import { SetWaitingRoomPositionBuilder } from './builder/SetWaitingRoomPositionBuilder.js';
 
 export class playerJoinRoomDTO {
   room: string;
@@ -30,3 +31,14 @@ export class ResponsePickUpItemDTO {
   }
 }
 
+
+export class SetWaitingRoomPositionDTO {
+  playerId: string;
+  x:number;
+  y:number;
+  avatar:number;
+  nickname: string;
+  static builder() {
+    return new SetWaitingRoomPositionBuilder();
+  }
+}

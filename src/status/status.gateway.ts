@@ -8,7 +8,7 @@ import { Logger } from "@nestjs/common";
 import { StatusBombGameService } from "./status.service.js";
 import { RandomNumberGenerator } from './Utils/utils.RandomNumberGenerator.js'
 import { OnEvent } from "@nestjs/event-emitter";
-import { playerAttackPositionDTO, playerMovementDTO } from "./DTO/status.DTO.js";
+import { playerAttackPositionDTO, playerMovementDTO,SetWaitingRoomPositionDTO } from "./DTO/status.DTO.js";
 import { RandomNicknameService } from '../random-nickname/random-nickname.service.js';
 import { RankService } from './rank.service.js';
 import { GeckosIoService } from '../geckos/geckos.service.js';
@@ -67,8 +67,16 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       isDead: 0,
     });
 
+    const setWaitingRoomDTO = SetWaitingRoomPositionDTO.builder()
+        .setPlayerId(channel.id)
+        .setAvatar(randomNum)
+        .setXDot(dot.x)
+        .setXDot(dot.y)
+        .setNickname(randomNickname)
+        .build()
     //처음들어올시 waiting room 에 입장.
-    this.waitingService.setWaitingRoomPosition(channel.id,dot.x,dot.y,randomNum,randomNickname);
+
+    this.waitingService.setWaitingRoomPosition(setWaitingRoomDTO);
 
     console.log(
       `${JSON.stringify(this.statusService.bombGameRoomPosition.get(channel.id))}`,
@@ -82,7 +90,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       y:dot.y,
       avatar: randomNum,
       nickname: randomNickname,
-      isPlay: 0
+      isPlay: 0 /// 1 로 바꿔줘야함.
     });
 
     // channel.emit('currentPlayers', Object.fromEntries(this.statusService.bombGameRoomPosition),);
@@ -390,7 +398,15 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       channel.join(this.WAITING_ROOM)
       const player = this.statusService.bombGameRoomPosition.get(channel.id);
       const dot = this.getRandomWaitingRoomPosition()
-      this.waitingService.setWaitingRoomPosition(channel.id,dot.x,dot.y,player.avatar,player.nickname)
+
+      const setWaitingRoomDTO = SetWaitingRoomPositionDTO.builder()
+        .setPlayerId(channel.id)
+        .setAvatar(player.avatar)
+        .setXDot(dot.x)
+        .setXDot(dot.y)
+        .setNickname(player.nickname)
+        .build()
+      this.waitingService.setWaitingRoomPosition(setWaitingRoomDTO);
       this.statusService.disconnectBombUser(channel.id);
       channel.broadcast.emit("newPlayer", {
         playerId: channel.id,
