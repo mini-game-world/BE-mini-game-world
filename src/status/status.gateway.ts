@@ -12,7 +12,7 @@ import { playerAttackPositionDTO, playerMovementDTO } from "./DTO/status.DTO.js"
 import { RandomNicknameService } from '../random-nickname/random-nickname.service.js';
 import { RankService } from './rank.service.js';
 import { GeckosIoService } from '../geckos/geckos.service.js';
-import { WaitingService } from '@src/status/waiting.service.js';
+import { WaitingService } from './waiting.service.js';
 
 @WebSocketGateway({ cors: { origin: "*" } })
 export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
@@ -37,8 +37,8 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private bombGameStartFlag = 0;
   private generator = new RandomNumberGenerator(1, 30);
 
-  private readonly WAITING_ROOM: string = 'wait';
-  private readonly PLAY_ROOM: string = 'play';
+  readonly WAITING_ROOM: string = 'wait';
+  readonly PLAY_ROOM: string = 'play';
 
   async afterInit() {
     this.logger.log('Init StatusGateway');

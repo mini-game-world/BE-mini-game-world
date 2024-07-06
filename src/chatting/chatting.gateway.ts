@@ -33,9 +33,7 @@ export class ChattingGateway
   }
 
   handleConnection(channel: any) {
-    channel.on('message', (data: string) =>
-      this.handleMessage(channel, data),
-    );
+    channel.on('message', (data: string) => this.handleMessage(channel, data),);
 
     channel.on('disconnect', () => this.handleDisconnect(channel));
   }
@@ -57,7 +55,7 @@ export class ChattingGateway
 
     this.logger.log(`[Chatting message] ${nickname} : ${sendMessage} `);
 
-    this.geckosIoService.io.emit('broadcastMessage', {
+    channel.room.emit('broadcastMessage', {
       playerId: channel.id,
       nickname: nickname,
       message: sendMessage,
