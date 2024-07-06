@@ -12,6 +12,7 @@ import { playerAttackPositionDTO, playerMovementDTO } from "./DTO/status.DTO.js"
 import { RandomNicknameService } from '../random-nickname/random-nickname.service.js';
 import { RankService } from './rank.service.js';
 import { GeckosIoService } from '../geckos/geckos.service.js';
+import { WaitingService } from '@src/status/waiting.service.js';
 
 @WebSocketGateway({ cors: { origin: "*" } })
 export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
@@ -22,7 +23,8 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     private readonly statusService: StatusBombGameService,
     private readonly randomNicknameService: RandomNicknameService,
     private readonly rankService: RankService,
-    private readonly geckosIoService: GeckosIoService
+    private readonly geckosIoService: GeckosIoService,
+    private readonly waitingService: WaitingService
   ) {
     setInterval(this.safeCheckBombRooms.bind(this), this.CHECK_INTERVAL);
   }
@@ -34,6 +36,9 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private STUN_DURATION_MS: number = 1000;
   private bombGameStartFlag = 0;
   private generator = new RandomNumberGenerator(1, 30);
+
+  private readonly WAITING_ROOM: string = 'wait';
+  private readonly PLAY_ROOM: string = 'play';
 
   async afterInit() {
     this.logger.log('Init StatusGateway');
@@ -63,7 +68,9 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       `${JSON.stringify(this.statusService.bombGameRoomPosition.get(channel.id))}`,
     );
 
-    channel.broadcast.emit("newPlayer", {
+    channel.join(this.WAITING_ROOM);
+
+    channel.room.emit("newPlayer", {
       playerId: channel.id,
       x,
       y,
@@ -72,10 +79,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       isPlay: 0
     });
 
-    channel.emit(
-      'currentPlayers',
-      Object.fromEntries(this.statusService.bombGameRoomPosition),
-    );
+    channel.emit('currentPlayers', Object.fromEntries(this.statusService.bombGameRoomPosition),);
     channel.emit("gamestatus", this.bombGameStartFlag);
 
     this.logger.log(`Client ${channel.id} joined`);
@@ -109,7 +113,18 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   playerPosition(channel: any, data: playerMovementDTO): void {
-    this.statusService.setBombGameRoomPosition(channel.id, data.x, data.y);
+    const room = channel._roomId
+
+    switch (room) {
+      case this.WAITING_ROOM:
+        this.waitingService.setWaitingRoomMove(channel.id, data.x, data.y)
+
+
+      case this.PLAY_ROOM:
+        this.statusService.setBombGameRoomPosition(channel.id, data.x, data.y);
+        break;
+    }
+    // emits a message to all channels, in the same room, except sender
     channel.broadcast.emit("playerMoved", { playerId: channel.id, x: data.x, y: data.y });
     this.statusService.checkOverlappingBombUser(channel.id, data.x, data.y);
     this.statusService.checkOverlappingItemUser(channel.id, data.x, data.y);
