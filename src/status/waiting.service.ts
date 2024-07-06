@@ -10,7 +10,7 @@ export class WaitingService {
 
   private logger: Logger = new Logger('WaitingService');
 
-  private waitingRoomPosition: Map<string, { x: number, y: number, avatar: number, nickname: string, }> = new Map();
+  private waitingRoomPosition: Map<string, { x: number, y: number, avatar: number, nickname: string }> = new Map();
 
   setWaitingRoomPosition(user:SetWaitingRoomPositionDTO) {
     this.waitingRoomPosition.set(user.playerId,{ x:user.x,y:user.y,avatar:user.avatar,nickname:user.nickname});
@@ -28,7 +28,9 @@ export class WaitingService {
   }
 
   getAllWaitingRoomUser() {
-    return Object.fromEntries(this.waitingRoomPosition);
+    return Object.fromEntries(
+      Array.from(this.waitingRoomPosition.entries()).map(([key, value]) => [key, { ...value, room: 'wait' }])
+    );
   }
   getWaitingRoomPositionSize(){
     return this.waitingRoomPosition.size;

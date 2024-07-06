@@ -74,7 +74,8 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       y:dot.y,
       avatar: randomNum,
       nickname: randomNickname,
-      isPlay: 1 /// 1 로 바꿔줘야함.
+      isPlay: 1 ,/// 1 로 바꿔줘야함.,
+      room:this.WAITING_ROOM
     });
 
     // channel.emit('currentPlayers', Object.fromEntries(this.statusService.bombGameRoomPosition),);
@@ -391,6 +392,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         .setYDot(dot.y)
         .setNickname(player.nickname)
         .build()
+
       this.waitingService.setWaitingRoomPosition(setWaitingRoomDTO);
       this.statusService.disconnectBombUser(channel.id);
       channel.broadcast.emit("newPlayer", {
