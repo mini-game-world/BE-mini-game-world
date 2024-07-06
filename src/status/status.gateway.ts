@@ -363,6 +363,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         isStun: 0,
         isPlay: 0,
         isDead: 0,
+        room:this.PLAY_ROOM,
       });
 
       channel.broadcast.emit("newPlayer", {
@@ -371,6 +372,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         y,
         avatar: player.avatar,
         nickname: player.nickname,
+        room:this.PLAY_ROOM,
         isPlay: 0
       });
       channel.emit('currentPlayers', Object.fromEntries(this.statusService.bombGameRoomPosition),);
@@ -401,6 +403,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         y:dot.y,
         avatar: player.avatar,
         nickname: player.nickname,
+        room:this.WAITING_ROOM,
         isPlay: 1
       });
       channel.emit('currentPlayers',this.waitingService.getAllWaitingRoomUser());

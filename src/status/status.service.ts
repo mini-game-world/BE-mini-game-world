@@ -22,6 +22,7 @@ export class StatusBombGameService {
       isStun: number;
       isPlay: number;
       isDead: number;
+      room:string;
     }
   > = new Map();
   // bomb 게임 플레이유저중 생존자들

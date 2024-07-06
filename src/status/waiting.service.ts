@@ -10,10 +10,10 @@ export class WaitingService {
 
   private logger: Logger = new Logger('WaitingService');
 
-  private waitingRoomPosition: Map<string, { x: number, y: number, avatar: number, nickname: string }> = new Map();
+  private waitingRoomPosition: Map<string, { x: number, y: number, avatar: number, nickname: string ,room:string}> = new Map();
 
   setWaitingRoomPosition(user:SetWaitingRoomPositionDTO) {
-    this.waitingRoomPosition.set(user.playerId,{ x:user.x,y:user.y,avatar:user.avatar,nickname:user.nickname});
+    this.waitingRoomPosition.set(user.playerId,{ x:user.x,y:user.y,avatar:user.avatar,nickname:user.nickname,room:'wait'});
   }
 
   setWaitingRoomMove(socketID:string,x:number, y:number){
@@ -28,9 +28,7 @@ export class WaitingService {
   }
 
   getAllWaitingRoomUser() {
-    return Object.fromEntries(
-      Array.from(this.waitingRoomPosition.entries()).map(([key, value]) => [key, { ...value, room: 'wait' }])
-    );
+    return Object.fromEntries(this.waitingRoomPosition);
   }
   getWaitingRoomPositionSize(){
     return this.waitingRoomPosition.size;

@@ -54,12 +54,15 @@ export class ChattingGateway
     const censoredMessage = await this.chattingService.censorBadWords(data);
 
     let nickname:string ='';
+    let room:string='';
     switch (channel._roomId) {
       case this.statusGateway.PLAY_ROOM :
         nickname = this.statusBombGameService.bombGameRoomPosition.get(channel.id).nickname;
+        room=this.statusGateway.PLAY_ROOM;
         break;
       case this.statusGateway.WAITING_ROOM :
         nickname = this.waitingService.getWaitingRoomPosition(channel.id).nickname;
+        room=this.statusGateway.WAITING_ROOM;
         break;
     }
 
@@ -72,6 +75,7 @@ export class ChattingGateway
       playerId: channel.id,
       nickname: nickname,
       message: sendMessage,
+      room: room,
     });
   }
 }
