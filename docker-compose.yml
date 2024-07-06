@@ -1,13 +1,7 @@
 version: '3'
 
 services:
-  minigameworld:
-    build: .
-    ports:
-      - "3000:3000"
-      - "0:65535/udp"
-    networks:
-      - monitoring
+
 
   prometheus:
     image: prom/prometheus
