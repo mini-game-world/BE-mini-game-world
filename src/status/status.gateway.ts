@@ -71,7 +71,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         .setPlayerId(channel.id)
         .setAvatar(randomNum)
         .setXDot(dot.x)
-        .setXDot(dot.y)
+        .setYDot(dot.y)
         .setNickname(randomNickname)
         .build()
     //처음들어올시 waiting room 에 입장.
@@ -403,7 +403,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         .setPlayerId(channel.id)
         .setAvatar(player.avatar)
         .setXDot(dot.x)
-        .setXDot(dot.y)
+        .setYDot(dot.y)
         .setNickname(player.nickname)
         .build()
       this.waitingService.setWaitingRoomPosition(setWaitingRoomDTO);
