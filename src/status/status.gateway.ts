@@ -354,7 +354,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   private changeRoom(channel:any) {
     if(channel._roomId === this.WAITING_ROOM) {
-      this.logger.log(` 게임방 -> 대기룸 이동  플레이어 입니다 : ${channel.id}`);
+      this.logger.log(` 대기룸 -> 게임방 이동  플레이어 입니다 : ${channel.id}`);
       channel.broadcast.emit('leavedRoom', channel.id);
       channel.leave()
       channel.join(this.PLAY_ROOM)
