@@ -344,13 +344,14 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   private changeRoom(channel:any) {
     if(channel._roomId === this.WAITING_ROOM) {
-      this.logger.log(` 대기룸 -> 게임방 이동  플레이어 입니다 : ${channel.id}`);
+
       channel.broadcast.emit('leavedRoom', channel.id);
       channel.leave()
       channel.join(this.PLAY_ROOM)
       const x = Math.floor(Math.random() * (1760 - 960 + 1)) + 960;
       const y = Math.floor(Math.random() * (640 - 320 + 1)) + 320;
       const player =this.waitingService.getWaitingRoomPosition(channel.id)
+      this.logger.log(` 대기룸 -> 게임방 이동  플레이어 입니다 : ${player.nickname}`);
       this.waitingService.disconnectUser(channel.id);
 
       this.statusService.bombGameRoomPosition.set(channel.id, {
@@ -376,11 +377,11 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       return
     }
     if(channel._roomId === this.PLAY_ROOM) {
-      this.logger.log(` 게임방 -> 대기룸 이동  플레이어 입니다 : ${channel.id}`);
       channel.broadcast.emit('leavedRoom', channel.id);
       channel.leave()
       channel.join(this.WAITING_ROOM)
       const player = this.statusService.bombGameRoomPosition.get(channel.id);
+      this.logger.log(` 게임방 -> 대기룸 이동  플레이어 입니다 :  ${player.nickname}`);
       const dot = this.getRandomWaitingRoomPosition()
 
       const setWaitingRoomDTO = SetWaitingRoomPositionDTO.builder()
