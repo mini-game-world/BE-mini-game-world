@@ -37,8 +37,8 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private bombGameStartFlag = 0;
   private generator = new RandomNumberGenerator(1, 30);
 
-  private readonly WAITING_ROOM: string = 'wait';
-  private readonly PLAY_ROOM: string = 'play';
+  readonly WAITING_ROOM: string = 'wait';
+  readonly PLAY_ROOM: string = 'play';
 
   async afterInit() {
     this.logger.log('Init StatusGateway');

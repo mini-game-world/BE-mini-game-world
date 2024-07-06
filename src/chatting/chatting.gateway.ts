@@ -7,6 +7,8 @@ import {
 import { Logger } from '@nestjs/common';
 import { ChattingService } from './chatting.service.js';
 import { StatusBombGameService } from '../status/status.service.js';
+import { StatusGateway } from '../status/status.gateway.js';
+import { WaitingService } from '../status/waiting.service.js'
 import { GeckosIoService } from '../geckos/geckos.service.js';
 
 
@@ -19,7 +21,9 @@ export class ChattingGateway
   constructor(
     private readonly chattingService: ChattingService,
     private readonly statusBombGameService: StatusBombGameService,
-    private readonly geckosIoService: GeckosIoService
+    private readonly geckosIoService: GeckosIoService,
+    private readonly statusGateway:StatusGateway,
+    private readonly waitingService: WaitingService,
   ) {}
 
   async afterInit() {
@@ -48,7 +52,16 @@ export class ChattingGateway
       return;
     }
     const censoredMessage = await this.chattingService.censorBadWords(data);
-    const nickname = this.statusBombGameService.bombGameRoomPosition.get(channel.id).nickname;
+
+    let nickname:string ='';
+    switch (channel._roomId) {
+      case this.statusGateway.PLAY_ROOM :
+        nickname = this.statusBombGameService.bombGameRoomPosition.get(channel.id).nickname;
+        break;
+      case this.statusGateway.WAITING_ROOM :
+        nickname = this.waitingService.getWaitingRoomPosition(channel.id).nickname;
+        break;
+    }
 
     const sendMessage: string =
       this.chattingService.checkChattingLen(censoredMessage);
