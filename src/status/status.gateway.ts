@@ -87,7 +87,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
     // channel.emit('currentPlayers', Object.fromEntries(this.statusService.bombGameRoomPosition),);
     channel.emit('currentPlayers', this.waitingService.getAllWaitingRoomUser());
-    // channel.emit("gamestatus", this.bombGameStartFlag);
+    channel.emit("gamestatus", this.bombGameStartFlag);
 
     this.logger.log(`Client ${channel.id} joined`);
     this.logger.log(
