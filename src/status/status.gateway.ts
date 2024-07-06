@@ -51,21 +51,9 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   async handleConnection(channel: any): Promise<void> {
-    // const x = Math.floor(Math.random() * (1760 - 960 + 1)) + 960;
-    // const y = Math.floor(Math.random() * (640 - 320 + 1)) + 320;
     const randomNum = this.generator.getRandomNumber();
     const randomNickname = await this.randomNicknameService.getRandomNickname();
     const dot =this.getRandomWaitingRoomPosition()
-    //임시
-    this.statusService.bombGameRoomPosition.set(channel.id, {
-      x:dot.x,
-      y:dot.y,
-      avatar: randomNum,
-      nickname: randomNickname,
-      isStun: 0,
-      isPlay: 0,
-      isDead: 0,
-    });
 
     const setWaitingRoomDTO = SetWaitingRoomPositionDTO.builder()
         .setPlayerId(channel.id)
@@ -78,10 +66,6 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
     this.waitingService.setWaitingRoomPosition(setWaitingRoomDTO);
 
-    console.log(
-      `${JSON.stringify(this.statusService.bombGameRoomPosition.get(channel.id))}`,
-    );
-
     channel.join(this.WAITING_ROOM);
 
     channel.broadcast.emit("newPlayer", {
@@ -90,12 +74,12 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       y:dot.y,
       avatar: randomNum,
       nickname: randomNickname,
-      isPlay: 0 /// 1 로 바꿔줘야함.
+      isPlay: 1 /// 1 로 바꿔줘야함.
     });
 
     // channel.emit('currentPlayers', Object.fromEntries(this.statusService.bombGameRoomPosition),);
-    channel.emit('currentPlayers', this.waitingService.getAllWaitingRoomUser());
-    channel.emit("gamestatus", this.bombGameStartFlag);
+    // channel.emit('currentPlayers', this.waitingService.getAllWaitingRoomUser());
+    // channel.emit("gamestatus", this.bombGameStartFlag);
 
     this.logger.log(`Client ${channel.id} joined`);
     this.logger.log(`Number of connected clients: ${this.statusService.bombGameRoomPosition.size + this.waitingService.getWaitingRoomPositionSize()}`,);
@@ -414,6 +398,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         y:dot.y,
         avatar: player.avatar,
         nickname: player.nickname,
+        isPlay: 1
       });
       channel.emit('currentPlayers',this.waitingService.getAllWaitingRoomUser());
       return
