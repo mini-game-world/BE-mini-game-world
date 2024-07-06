@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { CacheService } from '../cache/cache.service.js';
 import { ResponsePickUpItemDTO } from './DTO/status.DTO.js';
 
 
@@ -8,7 +7,6 @@ import { ResponsePickUpItemDTO } from './DTO/status.DTO.js';
 export class StatusBombGameService {
   constructor(
     private eventEmitter: EventEmitter2,
-    private cacheManager: CacheService,
   ) {}
 
   // bomb 게임방에 입장유저
@@ -68,9 +66,6 @@ export class StatusBombGameService {
   }
 
   async disconnectBombUser(deleteUserId: string) {
-    // this.cacheManager.set('anay', 'spy');
-    // const value = await this.cacheManager.get('anay');
-    // console.log(`캐시다~~~~~~~~~~~~~~~~~${value}`);
     this.bombGameRoomPosition.delete(deleteUserId);
     this.playGameUser.delete(deleteUserId);
     this.playUserCount = this.playGameUser.size;
