@@ -354,7 +354,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   private changeRoom(channel:any) {
     if(channel._roomId === this.WAITING_ROOM) {
-      this.logger.log(` 대기방에서 나간 플레이어 입니다 ${channel.id}`);
+      this.logger.log(` 게임방 -> 대기룸 이동  플레이어 입니다 : ${channel.id}`);
       channel.broadcast.emit('leavedRoom', channel.id);
       channel.leave()
       channel.join(this.PLAY_ROOM)
@@ -386,7 +386,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       return
     }
     if(channel._roomId === this.PLAY_ROOM) {
-      this.logger.log(` 게임방에서 나간 플레이어 입니다 ${channel.id}`);
+      this.logger.log(` 게임방 -> 대기룸 이동  플레이어 입니다 : ${channel.id}`);
       channel.broadcast.emit('leavedRoom', channel.id);
       channel.leave()
       channel.join(this.WAITING_ROOM)
@@ -394,9 +394,6 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       const dot = this.getRandomWaitingRoomPosition()
       this.waitingService.setWaitingRoomPosition(channel.id,dot.x,dot.y,player.avatar,player.nickname)
       this.statusService.disconnectBombUser(channel.id);
-      /** TODD
-       * 대기방에서 나간 플레이어를 룸전체한테 뿌려주는게필요
-       */
       channel.broadcast.emit("newPlayer", {
         playerId: channel.id,
         x:dot.x,
