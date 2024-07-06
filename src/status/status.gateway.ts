@@ -111,19 +111,26 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     const room = channel._roomId;
     switch (room) {
       case this.PLAY_ROOM:
-
+        const position = this.statusService.bombGameRoomPosition.get(channel.id);
+        if (position) {
+          this.generator.restoreNumber(position.avatar);
+        } else {
+          console.error(`Channel ID ${channel.id} not found in bombGameRoomPosition.`);
+        }
+        this.statusService.disconnectBombUser(channel.id);
+        this.logger.log(`Client disconnected: ${channel.id}`);
+        break;
+      case this.WAITING_ROOM:
+        const waitingRoomPosition = this.waitingService.getWaitingRoomPosition(channel.id);
+        if (waitingRoomPosition) {
+          this.generator.restoreNumber(waitingRoomPosition.avatar);
+        } else {
+          console.error(`Channel ID ${channel.id} not found in bombGameRoomPosition.`);
+        }
+        this.waitingService.disconnectUser(channel.id);
     }
 
-    const position = this.statusService.bombGameRoomPosition.get(channel.id);
-    if (position) {
-        this.generator.restoreNumber(position.avatar);
-    } else {
-        console.error(`Channel ID ${channel.id} not found in bombGameRoomPosition.`);
-    }
     this.geckosIoService.io.emit("playerDisconnected", channel.id);
-    this.statusService.disconnectBombUser(channel.id);
-    this.logger.log(`Client disconnected: ${channel.id}`);
-
     const boomPlayerSize = this.statusService.bombGameRoomPosition.size;
     const waitPlayerSize=this.waitingService.getWaitingRoomPositionSize();
     this.logger.log(`Number of connected clients: ${boomPlayerSize+waitPlayerSize}`);
