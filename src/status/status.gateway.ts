@@ -227,6 +227,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   @OnEvent('bombGame.winner')
   handleBombGameWinner(winner: string[]) {
+    let timeCount = 1;
     if (winner) {
       const gameWinner = winner[0];
       const bombMaster = this.rankService.getMVP(this.rankService.BOMB);
@@ -239,11 +240,14 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       this.logger.log("gameResult", result);
       this.rankService.gameEnd();
       this.geckosIoService.io.emit("gameWinner", result);
+      if (bombMaster) timeCount += 1;
+      if (punchingBag) timeCount += 1;
     }
+
     setTimeout(() => {
       this.bombGameStartFlag = 0;
       this.geckosIoService.io.emit("playingGame", this.bombGameStartFlag);
-    }, 15000);
+    }, this.CHECK_INTERVAL * timeCount);
   }
 
   @OnEvent('bombGame.newItems')
