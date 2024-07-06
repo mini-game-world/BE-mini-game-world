@@ -11,6 +11,6 @@ import { WaitingService } from './waiting.service.js';
 @Module({
     imports: [EventEmitterModule.forRoot(), CacheModule, RandomNicknameModule, GeckosIoModule],
     providers: [StatusGateway, StatusBombGameService, RankService, WaitingService],
-    exports: [StatusBombGameService, WaitingService],
+    exports: [StatusBombGameService, WaitingService,StatusGateway],
 })
 export class StatusModule {}
