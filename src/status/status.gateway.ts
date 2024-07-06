@@ -107,18 +107,26 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   handleDisconnect(channel: any): any {
+
+    const room = channel._roomId;
+    switch (room) {
+      case this.PLAY_ROOM:
+
+    }
+
     const position = this.statusService.bombGameRoomPosition.get(channel.id);
     if (position) {
         this.generator.restoreNumber(position.avatar);
     } else {
         console.error(`Channel ID ${channel.id} not found in bombGameRoomPosition.`);
     }
-    channel.broadcast.emit("playerDisconnected", channel.id);
+    this.geckosIoService.io.emit("playerDisconnected", channel.id);
     this.statusService.disconnectBombUser(channel.id);
-
     this.logger.log(`Client disconnected: ${channel.id}`);
-    const size = this.statusService.bombGameRoomPosition.size;
-    this.logger.log(`Number of connected clients: ${size}`);
+
+    const boomPlayerSize = this.statusService.bombGameRoomPosition.size;
+    const waitPlayerSize=this.waitingService.getWaitingRoomPositionSize();
+    this.logger.log(`Number of connected clients: ${boomPlayerSize+waitPlayerSize}`);
   }
 
   playerPosition(channel: any, data: playerMovementDTO): void {
@@ -339,15 +347,14 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   private changeRoom(channel:any) {
     if(channel._roomId === this.WAITING_ROOM) {
+      this.logger.log(` 대기방에서 나간 플레이어 입니다 ${channel.id}`);
+      channel.broadcast.emit('leavedRoom', channel.id);
       channel.leave()
       channel.join(this.PLAY_ROOM)
       const x = Math.floor(Math.random() * (1760 - 960 + 1)) + 960;
       const y = Math.floor(Math.random() * (640 - 320 + 1)) + 320;
       const player =this.waitingService.getWaitingRoomPosition(channel.id)
       this.waitingService.disconnectUser(channel.id);
-      /** TODD
-       * 대기방에서 나간 플레이어를 룸전체한테 뿌려주는게필요
-       */
 
       this.statusService.bombGameRoomPosition.set(channel.id, {
         x,
