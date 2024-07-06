@@ -1,20 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import * as dotenv from 'dotenv';
-const Redis = require('ioredis');
+import * as Redis from 'ioredis';
 
 dotenv.config();
 
 @Injectable()
 export class RedisService {
-  private readonly client: any; // 타입을 any로 임시 변경
+  private readonly client: Redis.Redis; // Explicitly type the client property
   constructor() {
-    this.client = new Redis({
+    this.client = new Redis.default({
       host: process.env.REDIS_HOST,
-      port: process.env.REDIS_PORT,
+      port: Number(process.env.REDIS_PORT), // Ensure the port is a number
     });
   }
 
-  getClient(): any {
+  getClient(): Redis.Redis {
     return this.client;
   }
 }
