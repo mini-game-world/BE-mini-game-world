@@ -229,7 +229,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     );
     // //폭탄 옮긴유저 카운트
     // this.rankService.processEvent({ playerId: changeBombUserList[1], eventType: this.rankService.BOMB })
-    // this.geckosIoService.io.emit("changeBombUser", changeBombUserList);
+    this.geckosIoService.io.emit("changeBombUser", changeBombUserList);
     this.cacheManager.incrementBombCount(changeBombUserList[1]);
   }
 
