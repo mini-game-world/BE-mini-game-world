@@ -373,10 +373,6 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         isDead: 0,
       });
 
-      /** TODD
-       *  새로들어온 애는 게임방 정보를 받아야하고
-       *  게임방 애들은 새로들어온애 알아야함.
-       */
       channel.broadcast.emit("newPlayer", {
         playerId: channel.id,
         x,
@@ -390,6 +386,8 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       return
     }
     if(channel._roomId === this.PLAY_ROOM) {
+      this.logger.log(` 게임방에서 나간 플레이어 입니다 ${channel.id}`);
+      channel.broadcast.emit('leavedRoom', channel.id);
       channel.leave()
       channel.join(this.WAITING_ROOM)
       const player = this.statusService.bombGameRoomPosition.get(channel.id);
