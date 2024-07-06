@@ -240,23 +240,23 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   @OnEvent('bombGame.start')
   handleBombGameStart(playGameUserList: string[], bombUserList: string[]) {
-    this.geckosIoService.io.emit("bombUsers", bombUserList);
+    this.geckosIoService.io.room(this.PLAY_ROOM).emit("bombUsers", bombUserList);
   }
 
   @OnEvent('bombGame.timer')
   handleBombGameTimer(remainingTime: number) {
-    this.geckosIoService.io.emit("bombTimer", { remainingTime });
+    this.geckosIoService.io.room(this.PLAY_ROOM).emit("bombTimer", { remainingTime });
   }
 
   @OnEvent('bombGame.deadUsers')
   handleBombGameDeadUsers(bombUserList: string[]) {
-    this.geckosIoService.io.emit("deadUsers", bombUserList);
+    this.geckosIoService.io.room(this.PLAY_ROOM).emit("deadUsers", bombUserList);
   }
 
   @OnEvent('bombGame.newBombUsers')
   handleBombGameNewBombUsers(bombUserList: string[]) {
     this.logger.log(`새로운 폭탄멤버는 ${bombUserList}`);
-    this.geckosIoService.io.emit("bombUsers", bombUserList);
+    this.geckosIoService.io.room(this.PLAY_ROOM).emit("bombUsers", bombUserList);
   }
 
   @OnEvent('bombGame.changeBombUser')
@@ -266,7 +266,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     );
     //폭탄 옮긴유저 카운트
     this.rankService.processEvent({ playerId: changeBombUserList[1], eventType: this.rankService.BOMB })
-    this.geckosIoService.io.emit("changeBombUser", changeBombUserList);
+    this.geckosIoService.io.room(this.PLAY_ROOM).emit("changeBombUser", changeBombUserList);
   }
 
   @OnEvent('bombGame.winner')
@@ -283,14 +283,14 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       };
       this.logger.log("gameResult", result);
       this.rankService.gameEnd();
-      this.geckosIoService.io.emit("gameWinner", result);
+      this.geckosIoService.io.room(this.PLAY_ROOM).emit("gameWinner", result);
       if (bombMaster) timeCount += 1;
       if (punchingBag) timeCount += 1;
     }
 
     setTimeout(() => {
       this.bombGameStartFlag = 0;
-      this.geckosIoService.io.emit("playingGame", this.bombGameStartFlag);
+      this.geckosIoService.io.room(this.PLAY_ROOM).emit("playingGame", this.bombGameStartFlag);
     }, this.CHECK_INTERVAL * timeCount);
   }
 
@@ -298,13 +298,13 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   makeNewItem(itemDotList) {
     if (itemDotList.length === 0) return;
     this.logger.log(`새로 생성된 아이템 ==> ${JSON.stringify(itemDotList)}`);
-    this.geckosIoService.io.emit('newItems', itemDotList);
+    this.geckosIoService.io.room(this.PLAY_ROOM).emit('newItems', itemDotList);
   }
 
   @OnEvent('bombGame.itemPickedUp')
   itemPickedUp(item) {
     this.logger.log(`먹은 아이템 ==> ${JSON.stringify(item)}`);
-    this.geckosIoService.io.emit('itemPickedUp', item);
+    this.geckosIoService.io.room(this.PLAY_ROOM).emit('itemPickedUp', item);
   }
 
   private safeCheckBombRooms() {
@@ -324,9 +324,9 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       // Return a new Promise that resolves when the countdown finishes
       await new Promise<void>((resolve) => {
         const countdownInterval = setInterval(() => {
-          this.geckosIoService.io.emit("bombGameReady", countdown);
+          this.geckosIoService.io.room(this.PLAY_ROOM).emit("bombGameReady", countdown);
           if (!this.isBombGameStart()) {
-            this.geckosIoService.io.emit("bombGameReady", -1);
+            this.geckosIoService.io.room(this.PLAY_ROOM).emit("bombGameReady", -1);
             clearInterval(countdownInterval);
             resolve();
             return;
@@ -338,7 +338,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
             if (this.isBombGameStart()) {
               this.bombGameStart();
             } else {
-              this.geckosIoService.io.emit("bombGameReady", -1);
+              this.geckosIoService.io.room(this.PLAY_ROOM).emit("bombGameReady", -1);
             }
             resolve(); // Resolve the Promise here
           }
