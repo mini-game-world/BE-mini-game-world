@@ -1,5 +1,8 @@
 // src/geckos-io/geckos-io.service.ts
 import { Injectable, Logger } from '@nestjs/common';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 @Injectable()
 export class GeckosIoService {
@@ -23,7 +26,7 @@ export class GeckosIoService {
       const geckos = geckosModule.default;
 
       this.io = geckos({ iceServers: customIceServers });
-      this.io.listen(3001, { host: '0.0.0.0' });
+      this.io.listen(process.env.UDP_PORT, { host: '0.0.0.0' });
       this.logger.log('Geckos.io server initialized');
       this.initialized = true;
       resolve();
