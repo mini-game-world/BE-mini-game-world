@@ -5,6 +5,8 @@ import { ResponsePickUpItemDTO } from './DTO/status.DTO.js';
 
 @Injectable()
 export class StatusBombGameService {
+  private mapShrinkNumber: number = 1;
+  private intervalId: any = null;
   constructor(
     private eventEmitter: EventEmitter2,
   ) {}
@@ -259,6 +261,7 @@ export class StatusBombGameService {
 
         //아이템좌표 생성
         this.makeGameItem();
+        this.startMapShrink();
       }
     }, this.TIMER_INTERVAL_MS);
   }
@@ -349,6 +352,24 @@ export class StatusBombGameService {
     }
 
     this.eventEmitter.emit("bombGame.newItems", itemDotList);
+  }
+
+  private startMapShrink() {
+    if (this.intervalId === null) { // 이미 실행 중인지 확인
+      this.intervalId = setInterval(() => {
+        this.mapShrink();
+      }, 2000); // 2초마다 실행
+    }
+  }
+
+  private mapShrink() {
+    this.eventEmitter.emit("bombGame.mapShrink", this.mapShrinkNumber);
+    this.mapShrinkNumber++;
+    if (this.mapShrinkNumber > 15) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
+      this.mapShrinkNumber = 1;
+    }
   }
 
   private setGameItemStatus(){
