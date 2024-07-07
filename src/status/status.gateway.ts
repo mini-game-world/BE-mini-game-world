@@ -22,7 +22,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     private readonly statusService: StatusBombGameService,
     private readonly randomNicknameService: RandomNicknameService,
     private readonly geckosIoService: GeckosIoService,
-    private cacheManager: CacheService,
+    private readonly cacheManager: CacheService,
   ) {
     setInterval(this.safeCheckBombRooms.bind(this), this.CHECK_INTERVAL);
   }
