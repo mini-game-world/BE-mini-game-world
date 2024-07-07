@@ -12,6 +12,7 @@ import { playerAttackPositionDTO, playerMovementDTO } from "./DTO/status.DTO.js"
 import { RandomNicknameService } from '../random-nickname/random-nickname.service.js';
 import { GeckosIoService } from '../geckos/geckos.service.js';
 import { CacheService } from '../cache/cache.service.js';
+import { StatsService } from '../cache/stats.service.js';
 
 @WebSocketGateway({ cors: { origin: "*" } })
 export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
@@ -23,6 +24,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     private readonly randomNicknameService: RandomNicknameService,
     private readonly geckosIoService: GeckosIoService,
     private readonly cacheManager: CacheService,
+    private readonly statsService: StatsService,
   ) {
     setInterval(this.safeCheckBombRooms.bind(this), this.CHECK_INTERVAL);
   }
@@ -239,6 +241,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       this.geckosIoService.io.emit("gameWinner", result);
       if (bombMaster) timeCount += 1;
       if (punchingBag) timeCount += 1;
+      this.statsService.saveTopPlayersToDB(bombMaster, punchingBag);
     }
 
     setTimeout(() => {
