@@ -247,6 +247,7 @@ export class StatusBombGameService {
           clearInterval(timerInterval);
           clearInterval(this.intervalId);
           this.intervalId = null;
+          this.mapShrinkNumber = 0;
           return;
         }
 
