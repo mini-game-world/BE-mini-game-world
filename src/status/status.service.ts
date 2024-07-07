@@ -245,6 +245,7 @@ export class StatusBombGameService {
           });
           this.deadPlayers = [];
           clearInterval(timerInterval);
+          this.intervalId = null;
           return;
         }
 
@@ -367,7 +368,6 @@ export class StatusBombGameService {
     this.mapShrinkNumber++;
     if (this.mapShrinkNumber > 15) {
       clearInterval(this.intervalId);
-      this.intervalId = null;
       this.mapShrinkNumber = 1;
     }
   }
