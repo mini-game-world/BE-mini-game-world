@@ -265,7 +265,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   @OnEvent('bombGame.mapShrink')
   mapShrink(num) {
-    this.logger.log(`맵 줄어든 단계 ==> ${JSON.stringify(num)}`);
+    this.logger.log(`맵 줄어든 단계 ==> ${num}`);
     this.geckosIoService.io.emit('mapShrink', num);
   }
 
