@@ -12,7 +12,7 @@ jobs:
       - name: Github Repository 파일 불러오기
         uses: actions/checkout@v4
 
-      - name: Node 설치
+      - name: NODE 설치
         uses: actions/setup-node@v4
         with:
           node-version: "20"
@@ -22,39 +22,44 @@ jobs:
 
       - name: .env 파일 만들기
         run: |
-          touch .env
-          echo '${{ secrets.ENV }}' >> .env
+          echo '${{ secrets.ENV }}' > .env
+      - name: 빌드
+        run: npm run build
 
-      - name: AWS Resource에 접근할 수 있게 AWS credentials 설정
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: 압축하기
+        run: tar -czvf project.tar.gz dist .env package.json package-lock.json
+
+      - name: SCP로 EC2에 빌드된 파일 전송하기
+        uses: appleboy/scp-action@v0.1.7
         with:
-          aws-region: ap-northeast-2
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
-      - name: ECR에 로그인하기
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Docker 이미지 생성
-        run: docker build -t minigameworld .
-
-      - name: Docker 이미지에 Tag 붙이기
-        run: docker tag minigameworld ${{ steps.login-ecr.outputs.registry }}/minigameworld:latest
-
-      - name: ECR에 Docker 이미지 Push하기
-        run: docker push ${{ steps.login-ecr.outputs.registry }}/minigameworld:latest
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_PRIVATE_KEY }}
+          source: project.tar.gz
+          target: /home/ubuntu/BE-mini-game-world/tobe
 
       - name: SSH로 EC2에 접속하기
         uses: appleboy/ssh-action@v1.0.3
         with:
-            host: ${{ secrets.EC2_HOST }}
-            username: ${{ secrets.EC2_USERNAME }}
-            key: ${{ secrets.EC2_PRIVATE_KEY }}
-            script_stop: true
-            script: |
-              docker pull ${{ steps.login-ecr.outputs.registry }}/minigameworld:latest || true
-              docker-compose down || true
-              docker-compose up -d
-
-    
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_PRIVATE_KEY }}
+          script_stop: true
+          script: |
+            rm -rf /home/ubuntu/BE-mini-game-world/current
+            mkdir /home/ubuntu/BE-mini-game-world/current
+            mv /home/ubuntu/BE-mini-game-world/tobe/project.tar.gz /home/ubuntu/BE-mini-game-world/current/project.tar.gz
+            cd /home/ubuntu/BE-mini-game-world/current
+            tar -xvf project.tar.gz
+            # NVM 로드 및 npm 설치 경로 설정
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+            node -v
+            npm -v
+            npm ci
+            pm2 kill
+            pm2 start dist/main.js --name "mini-game-world"
+      
+            docker-compose down
+            docker-compose up -d

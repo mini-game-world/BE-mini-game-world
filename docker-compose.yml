@@ -1,12 +1,7 @@
 version: '3'
 
 services:
-  minigameworld:
-    build: .
-    ports:
-      - "3000:3000"
-    networks:
-      - monitoring
+
 
   prometheus:
     image: prom/prometheus

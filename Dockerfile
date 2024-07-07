@@ -1,5 +1,8 @@
 # Use the official Node.js image as the base image
-FROM node:20
+FROM node:20-buster
+
+# 필요한 패키지 설치
+RUN apt-get update && apt-get install -y libssl1.1
 
 # Set the working directory
 WORKDIR /usr/src/app
@@ -20,4 +23,4 @@ RUN npm run build
 EXPOSE 3000
 
 # Start the application
-CMD ["npm", "run", "start:prod"]
+CMD ["npm", "run", "start"]
