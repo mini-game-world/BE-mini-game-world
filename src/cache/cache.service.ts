@@ -3,20 +3,82 @@ import { RedisService } from '../redis/redis.service.js';
 
 @Injectable()
 export class CacheService {
-  // constructor(private readonly redisService: RedisService) {}
+  constructor(private readonly redisService: RedisService) {}
 
-  // async set(key: string, value: string) {
-  //   const client = this.redisService.getClient();
-  //   await client.set(key, value);
-  // }
+  async set(key: string, value: string) {
+    const client = this.redisService.getClient();
+    await client.set(key, value);
+  }
 
-  // async get(key: string): Promise<string | null> {
-  //   const client = this.redisService.getClient();
-  //   return await client.get(key);
-  // }
+  async get(key: string): Promise<string | null> {
+    const client = this.redisService.getClient();
+    return await client.get(key);
+  }
 
-  // async del(key: string): Promise<void> {
-  //   const client = this.redisService.getClient();
-  //   await client.del(key);
-  // }
+  async del(key: string): Promise<void> {
+    const client = this.redisService.getClient();
+    await client.del(key);
+  }
+
+  async increment(key: string): Promise<number> {
+    const client = this.redisService.getClient();
+    return await client.incr(key);
+  }
+
+  async flushAll(): Promise<void> {
+    const client = this.redisService.getClient();
+    await client.flushall();
+  }
+
+  async incrementBombCount(player: string): Promise<number> {
+    return await this.increment(`${player}:bomb`);
+  }
+
+  async incrementHitCount(player: string): Promise<number> {
+    return await this.increment(`${player}:hit`);
+  }
+
+  async getBombCount(player: string): Promise<number> {
+    const count = await this.get(`${player}:bomb`);
+    return count ? parseInt(count, 10) : 0;
+  }
+
+  async getHitCount(player: string): Promise<number> {
+    const count = await this.get(`${player}:hit`);
+    return count ? parseInt(count, 10) : 0;
+  }
+
+  async getTopPlayerByBombs(): Promise<{ playerId: string, count: number } | null> {
+    const client = this.redisService.getClient();
+    const keys = await client.keys('*:bomb');
+    let topPlayer = null;
+    let maxCount = -1;
+
+    for (const key of keys) {
+      const count = await client.get(key);
+      if (count && parseInt(count, 10) > maxCount) {
+        maxCount = parseInt(count, 10);
+        topPlayer = key.split(':')[0];
+      }
+    }
+
+    return topPlayer && maxCount > 0 ? { playerId: topPlayer, count: maxCount } : null;
+  }
+
+  async getTopPlayerByHits(): Promise<{ playerId: string, count: number } | null> {
+    const client = this.redisService.getClient();
+    const keys = await client.keys('*:hit');
+    let topPlayer = null;
+    let maxCount = -1;
+
+    for (const key of keys) {
+      const count = await client.get(key);
+      if (count && parseInt(count, 10) > maxCount) {
+        maxCount = parseInt(count, 10);
+        topPlayer = key.split(':')[0];
+      }
+    }
+
+    return topPlayer && maxCount > 0 ? { playerId: topPlayer, count: maxCount } : null;
+  }
 }

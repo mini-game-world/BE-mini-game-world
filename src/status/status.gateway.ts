@@ -10,8 +10,8 @@ import { RandomNumberGenerator } from './Utils/utils.RandomNumberGenerator.js'
 import { OnEvent } from "@nestjs/event-emitter";
 import { playerAttackPositionDTO, playerMovementDTO } from "./DTO/status.DTO.js";
 import { RandomNicknameService } from '../random-nickname/random-nickname.service.js';
-import { RankService } from './rank.service.js';
 import { GeckosIoService } from '../geckos/geckos.service.js';
+import { CacheService } from '../cache/cache.service.js';
 
 @WebSocketGateway({ cors: { origin: "*" } })
 export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
@@ -21,8 +21,8 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   constructor(
     private readonly statusService: StatusBombGameService,
     private readonly randomNicknameService: RandomNicknameService,
-    private readonly rankService: RankService,
-    private readonly geckosIoService: GeckosIoService
+    private readonly geckosIoService: GeckosIoService,
+    private readonly cacheManager: CacheService,
   ) {
     setInterval(this.safeCheckBombRooms.bind(this), this.CHECK_INTERVAL);
   }
@@ -96,9 +96,9 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   handleDisconnect(channel: any): any {
     const position = this.statusService.bombGameRoomPosition.get(channel.id);
     if (position) {
-        this.generator.restoreNumber(position.avatar);
+      this.generator.restoreNumber(position.avatar);
     } else {
-        console.error(`Channel ID ${channel.id} not found in bombGameRoomPosition.`);
+      console.error(`Channel ID ${channel.id} not found in bombGameRoomPosition.`);
     }
     channel.broadcast.emit("playerDisconnected", channel.id);
     this.statusService.disconnectBombUser(channel.id);
@@ -179,13 +179,9 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     this.logger.log(`Attack results: ${JSON.stringify(hitResults)}`);
 
     //맞은 정보 업데이트 시킴
-    hitResults.forEach(async (playerId) => {
-      this.rankService.processEvent({
-        playerId: playerId,
-        eventType: this.rankService.HIT,
-      });
-      this.logger.log(`hitResults playerId: ${playerId}`);
-    });
+    if (hitResults.length > 0) {
+      this.cacheManager.incrementHitCount(channel.id);
+    }
   }
 
   bombGameStart() {
@@ -220,25 +216,26 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     this.logger.log(
       `${changeBombUserList[1]}에서 ${changeBombUserList[0]}으로 폭탄이 옮겨졌습니다.`,
     );
-    //폭탄 옮긴유저 카운트
-    this.rankService.processEvent({ playerId: changeBombUserList[1], eventType: this.rankService.BOMB })
+    // //폭탄 옮긴유저 카운트
     this.geckosIoService.io.emit("changeBombUser", changeBombUserList);
+    this.cacheManager.incrementBombCount(changeBombUserList[1]);
   }
 
   @OnEvent('bombGame.winner')
-  handleBombGameWinner(winner: string[]) {
+  async handleBombGameWinner(winner: string[]) {
     let timeCount = 1;
     if (winner) {
       const gameWinner = winner[0];
-      const bombMaster = this.rankService.getMVP(this.rankService.BOMB);
-      const punchingBag = this.rankService.getMVP(this.rankService.HIT);
+      const bombMaster = await this.cacheManager.getTopPlayerByBombs();
+      const punchingBag = await this.cacheManager.getTopPlayerByHits();
       const result = {
         gameWinner: gameWinner,
         BombMaster: bombMaster || { playerId: '', count: 0 },
         PunchingBag: punchingBag || { playerId: '', count: 0 },
       };
       this.logger.log("gameResult", result);
-      this.rankService.gameEnd();
+      // this.rankService.gameEnd();
+      this.cacheManager.flushAll();
       this.geckosIoService.io.emit("gameWinner", result);
       if (bombMaster) timeCount += 1;
       if (punchingBag) timeCount += 1;
@@ -306,7 +303,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private isBombGameStart(): boolean {
     if (
       this.statusService.getBombGamePlayerMap().size >=
-        this.MIN_PLAYERS_FOR_BOMB_GAME &&
+      this.MIN_PLAYERS_FOR_BOMB_GAME &&
       !this.bombGameStartFlag
     ) {
       return true;
