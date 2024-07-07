@@ -96,9 +96,9 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   handleDisconnect(channel: any): any {
     const position = this.statusService.bombGameRoomPosition.get(channel.id);
     if (position) {
-        this.generator.restoreNumber(position.avatar);
+      this.generator.restoreNumber(position.avatar);
     } else {
-        console.error(`Channel ID ${channel.id} not found in bombGameRoomPosition.`);
+      console.error(`Channel ID ${channel.id} not found in bombGameRoomPosition.`);
     }
     channel.broadcast.emit("playerDisconnected", channel.id);
     this.statusService.disconnectBombUser(channel.id);
@@ -223,6 +223,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   @OnEvent('bombGame.winner')
   async handleBombGameWinner(winner: string[]) {
+    let timeCount = 1;
     if (winner) {
       const gameWinner = winner[0];
       const bombMaster = await this.cacheManager.getTopPlayerByBombs();
@@ -236,11 +237,14 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       // this.rankService.gameEnd();
       this.cacheManager.flushAll();
       this.geckosIoService.io.emit("gameWinner", result);
+      if (bombMaster) timeCount += 1;
+      if (punchingBag) timeCount += 1;
     }
+
     setTimeout(() => {
       this.bombGameStartFlag = 0;
       this.geckosIoService.io.emit("playingGame", this.bombGameStartFlag);
-    }, 15000);
+    }, this.CHECK_INTERVAL * timeCount);
   }
 
   @OnEvent('bombGame.newItems')
@@ -299,7 +303,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private isBombGameStart(): boolean {
     if (
       this.statusService.getBombGamePlayerMap().size >=
-        this.MIN_PLAYERS_FOR_BOMB_GAME &&
+      this.MIN_PLAYERS_FOR_BOMB_GAME &&
       !this.bombGameStartFlag
     ) {
       return true;
