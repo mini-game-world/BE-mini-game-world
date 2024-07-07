@@ -5,7 +5,7 @@ import { ResponsePickUpItemDTO } from './DTO/status.DTO.js';
 
 @Injectable()
 export class StatusBombGameService {
-  private mapShrinkNumber: number = 1;
+  private mapShrinkNumber: number = 0;
   private intervalId: any = null;
   constructor(
     private eventEmitter: EventEmitter2,
@@ -245,6 +245,7 @@ export class StatusBombGameService {
           });
           this.deadPlayers = [];
           clearInterval(timerInterval);
+          clearInterval(this.intervalId);
           this.intervalId = null;
           return;
         }
@@ -364,12 +365,12 @@ export class StatusBombGameService {
   }
 
   private mapShrink() {
+    if (this.mapShrinkNumber > 15) {
+      this.eventEmitter.emit("bombGame.mapShrink", this.mapShrinkNumber);
+      return;
+    }
     this.eventEmitter.emit("bombGame.mapShrink", this.mapShrinkNumber);
     this.mapShrinkNumber++;
-    if (this.mapShrinkNumber > 15) {
-      clearInterval(this.intervalId);
-      this.mapShrinkNumber = 1;
-    }
   }
 
   private setGameItemStatus(){
