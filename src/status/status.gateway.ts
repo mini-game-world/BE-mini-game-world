@@ -263,6 +263,12 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     this.geckosIoService.io.emit('itemPickedUp', item);
   }
 
+  @OnEvent('bombGame.mapShrink')
+  mapShrink(num) {
+    this.logger.log(`맵 줄어든 단계 ==> ${num}`);
+    this.geckosIoService.io.emit('mapShrink', num);
+  }
+
   private safeCheckBombRooms() {
     if (this.isCheckingBombRooms) {
       return;
