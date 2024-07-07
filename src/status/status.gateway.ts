@@ -260,6 +260,12 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     this.geckosIoService.io.emit('itemPickedUp', item);
   }
 
+  @OnEvent('playerMoved')
+  playerMoved(data) {
+    this.geckosIoService.io.emit('playerMoved', data);
+  }
+
+
   private safeCheckBombRooms() {
     if (this.isCheckingBombRooms) {
       return;
