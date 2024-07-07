@@ -110,7 +110,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   playerPosition(channel: any, data: playerMovementDTO): void {
     this.statusService.setBombGameRoomPosition(channel.id, data.x, data.y);
-    channel.broadcast.emit("playerMoved", { playerId: channel.id, x: data.x, y: data.y });
+    // channel.broadcast.emit("playerMoved", { playerId: channel.id, x: data.x, y: data.y });
     this.statusService.checkOverlappingBombUser(channel.id, data.x, data.y);
     this.statusService.checkOverlappingItemUser(channel.id, data.x, data.y);
   }
