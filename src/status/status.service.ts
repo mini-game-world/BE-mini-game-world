@@ -7,7 +7,9 @@ import { ResponsePickUpItemDTO } from './DTO/status.DTO.js';
 export class StatusBombGameService {
   constructor(
     private eventEmitter: EventEmitter2,
-  ) {}
+  ) {
+    setInterval(this.emitPlayerPositions.bind(this), this.TICK_RATE)
+  }
 
   // bomb 게임방에 입장유저
   bombGameRoomPosition: Map<
@@ -45,6 +47,9 @@ export class StatusBombGameService {
   private TREASURE_CHEST_HILL_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 3328, y: 512 ,isNotExist:true };
   private readonly ITEM_RADIUS: number = 80;
 
+  //-- tick rate---//
+  private readonly TICK_RATE: number = 1000 / 25;
+
   private logger: Logger = new Logger("BombGameService");
 
 
@@ -63,6 +68,16 @@ export class StatusBombGameService {
       status.y = y;
       this.bombGameRoomPosition.set(clientId, status);
     }
+  }
+
+  private emitPlayerPositions() {
+    this.bombGameRoomPosition.forEach((player, playerId) => {
+      this.eventEmitter.emit('playerMoved', {
+        playerId: playerId,
+        x: player.x,
+        y: player.y
+      });
+    });
   }
 
   async disconnectBombUser(deleteUserId: string) {
