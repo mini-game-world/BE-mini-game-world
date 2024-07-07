@@ -72,7 +72,9 @@ export class StatusBombGameService {
 
   private emitPlayerPositions() {
     this.bombGameRoomPosition.forEach((player, playerId) => {
-      this.eventEmitter.emit('playerMoved', { playerId: playerId, x: player.x, y: player.y });
+      if(this.bombGameRoomPosition.get(playerId)) {
+        this.eventEmitter.emit('playerMoved', { playerId: playerId, x: player.x, y: player.y });
+      }
     });
   }
 
