@@ -184,10 +184,9 @@ async handleAttackPosition(channel: any, data: playerAttackPositionDTO)   {
     //때린 수 만큼 정보 업데이트 시킴
     hitResults.forEach(async (result) => {
       await this.cacheManager.incrementHitCount(channel.id);
-      const test =  await this.cacheManager.getTopPlayerByHits()
-      console.log(`testlog 때린랭커 ---> ${ JSON.stringify(test)}`)
-      channel.broadcast.emit("currentHitRanker", test);
+      this.geckosIoService.io.emit("currentHitRanker", await this.cacheManager.getTopPlayerByHits());
     })
+
   }
 
   bombGameStart() {
@@ -226,9 +225,7 @@ async handleAttackPosition(channel: any, data: playerAttackPositionDTO)   {
     this.geckosIoService.io.emit("changeBombUser", changeBombUserList);
     this.cacheManager.incrementBombCount(changeBombUserList[1]);
     //현재 랭커
-    const test =  await  this.cacheManager.getTopPlayerByBombs()
-    console.log(`testlog 옮긴랭커 ---> ${ JSON.stringify(test)}`)
-    this.geckosIoService.io.emit("currentBombRanker", test);
+    this.geckosIoService.io.emit("currentBombRanker", await  this.cacheManager.getTopPlayerByBombs());
   }
 
   @OnEvent('bombGame.winner')
