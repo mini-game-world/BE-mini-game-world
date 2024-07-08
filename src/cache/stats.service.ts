@@ -12,14 +12,18 @@ export class StatsService {
   async saveTopPlayersToDB(topBombsPlayer, topHitsPlayer): Promise<void> {
     const currentStats = await this.playerStatsModel.findOne() || new this.playerStatsModel();
 
+    let updated = false;
+
     if (topBombsPlayer && topBombsPlayer.count > currentStats.bombCount) {
       currentStats.bombCount = topBombsPlayer.count;
+      updated = true;
     }
 
     if (topHitsPlayer && topHitsPlayer.count > currentStats.hitCount) {
       currentStats.hitCount = topHitsPlayer.count;
+      updated = true;
     }
 
-    await currentStats.save();
+    if (updated) await currentStats.save();
   }
 }
