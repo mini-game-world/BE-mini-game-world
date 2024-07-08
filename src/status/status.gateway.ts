@@ -37,6 +37,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private bombGameStartFlag = 0;
   private generator = new RandomNumberGenerator(1, 30);
 
+
   async afterInit() {
     this.logger.log('Init StatusGateway');
 
@@ -117,7 +118,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     this.statusService.checkOverlappingItemUser(channel.id, data.x, data.y);
   }
 
-  handleAttackPosition(channel: any, data: playerAttackPositionDTO): void {
+async handleAttackPosition(channel: any, data: playerAttackPositionDTO)   {
     const clientData = this.statusService.bombGameRoomPosition.get(channel.id);
     if (!clientData) {
       this.logger.warn(`Client ${channel.id} sent attack position but is not in any room`);
@@ -180,10 +181,12 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
     this.logger.log(`Attack results: ${JSON.stringify(hitResults)}`);
 
-    //맞은 정보 업데이트 시킴
-    if (hitResults.length > 0) {
-      this.cacheManager.incrementHitCount(channel.id);
-    }
+    //때린 수 만큼 정보 업데이트 시킴
+    hitResults.forEach(async (result) => {
+      await this.cacheManager.incrementHitCount(channel.id);
+      this.geckosIoService.io.emit("currentHitRanker", await this.cacheManager.getTopPlayerByHits());
+    })
+
   }
 
   bombGameStart() {
@@ -222,13 +225,15 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   @OnEvent('bombGame.changeBombUser')
-  handleBombGameChangeBombUsers(changeBombUserList: string[]) {
+  async handleBombGameChangeBombUsers(changeBombUserList: string[]) {
     this.logger.log(
       `${changeBombUserList[1]}에서 ${changeBombUserList[0]}으로 폭탄이 옮겨졌습니다.`,
     );
     // //폭탄 옮긴유저 카운트
     this.geckosIoService.io.emit("changeBombUser", changeBombUserList);
     this.cacheManager.incrementBombCount(changeBombUserList[1]);
+    //현재 랭커
+    this.geckosIoService.io.emit("currentBombRanker", await  this.cacheManager.getTopPlayerByBombs());
   }
 
   @OnEvent('bombGame.winner')
@@ -245,11 +250,11 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       };
       this.logger.log("gameResult", result);
       // this.rankService.gameEnd();
-      this.cacheManager.flushAll();
+      await this.cacheManager.delGameRankingInfo();
       this.geckosIoService.io.emit("gameWinner", result);
       if (bombMaster) timeCount += 1;
       if (punchingBag) timeCount += 1;
-      this.statsService.saveTopPlayersToDB(bombMaster, punchingBag);
+      await this.statsService.saveTopPlayersToDB(bombMaster, punchingBag);
     }
 
     setTimeout(() => {

@@ -1,84 +1,72 @@
 import { Injectable } from '@nestjs/common';
 import { RedisService } from '../redis/redis.service.js';
-
+import * as Redis from 'ioredis';
 @Injectable()
 export class CacheService {
-  constructor(private readonly redisService: RedisService) {}
+  private client:Redis.Redis;
+  readonly BOMB_RANKINGS:string = 'bombRankings'
+  readonly HIT_RANKINGS:string = 'hitRankings'
 
-  async set(key: string, value: string) {
-    const client = this.redisService.getClient();
-    await client.set(key, value);
+  constructor(private readonly redisService: RedisService) {
+    this.client = this.redisService.getClient();
   }
 
-  async get(key: string): Promise<string | null> {
-    const client = this.redisService.getClient();
-    return await client.get(key);
-  }
+  /**
+   * Redis - string
+   */
+  // async set(key: string, value: string) {
+  //   await this.client.set(key, value);
+  // }
 
-  async del(key: string): Promise<void> {
-    const client = this.redisService.getClient();
-    await client.del(key);
-  }
+  /**
+   * Redis - string
+   */
+  // async get(key: string): Promise<string | null> {
+  //   return await this.client.get(key);
+  // }
 
-  async increment(key: string): Promise<number> {
-    const client = this.redisService.getClient();
-    return await client.incr(key);
-  }
+  /**
+   * Redis - string
+   */
+  // async increment(key: string): Promise<number> {
+  //   return await this.client.incr(key);
+  // }
 
-  async flushAll(): Promise<void> {
-    const client = this.redisService.getClient();
-    await client.flushall();
-  }
-
+  /**
+   * Redis - sorted-set
+   */
   async incrementBombCount(player: string): Promise<number> {
-    return await this.increment(`${player}:bomb`);
+    const newCount = await this.client.zincrby(this.BOMB_RANKINGS, 1, player);
+    return parseInt(newCount, 10)
   }
-
   async incrementHitCount(player: string): Promise<number> {
-    return await this.increment(`${player}:hit`);
-  }
-
-  async getBombCount(player: string): Promise<number> {
-    const count = await this.get(`${player}:bomb`);
-    return count ? parseInt(count, 10) : 0;
-  }
-
-  async getHitCount(player: string): Promise<number> {
-    const count = await this.get(`${player}:hit`);
-    return count ? parseInt(count, 10) : 0;
+    const newCount = await this.client.zincrby(this.HIT_RANKINGS, 1, player);
+    return parseInt(newCount, 10)
   }
 
   async getTopPlayerByBombs(): Promise<{ playerId: string, count: number } | null> {
-    const client = this.redisService.getClient();
-    const keys = await client.keys('*:bomb');
-    let topPlayer = null;
-    let maxCount = -1;
-
-    for (const key of keys) {
-      const count = await client.get(key);
-      if (count && parseInt(count, 10) > maxCount) {
-        maxCount = parseInt(count, 10);
-        topPlayer = key.split(':')[0];
-      }
-    }
-
-    return topPlayer && maxCount > 0 ? { playerId: topPlayer, count: maxCount } : null;
+    const topPlayer = await this.client.zrevrange(this.BOMB_RANKINGS, 0, 0, 'WITHSCORES');
+    if (topPlayer.length === 0) return null;
+    return { playerId: topPlayer[0], count: parseInt(topPlayer[1], 10) };
   }
 
   async getTopPlayerByHits(): Promise<{ playerId: string, count: number } | null> {
-    const client = this.redisService.getClient();
-    const keys = await client.keys('*:hit');
-    let topPlayer = null;
-    let maxCount = -1;
-
-    for (const key of keys) {
-      const count = await client.get(key);
-      if (count && parseInt(count, 10) > maxCount) {
-        maxCount = parseInt(count, 10);
-        topPlayer = key.split(':')[0];
-      }
-    }
-
-    return topPlayer && maxCount > 0 ? { playerId: topPlayer, count: maxCount } : null;
+    const topPlayer = await this.client.zrevrange(this.HIT_RANKINGS, 0, 0, 'WITHSCORES');
+    if (topPlayer.length === 0) return null;
+    return { playerId: topPlayer[0], count: parseInt(topPlayer[1], 10) };
   }
+
+  async delGameRankingInfo(): Promise<void> {
+    await this.client.del(this.BOMB_RANKINGS);
+    await this.client.del(this.HIT_RANKINGS);
+  }
+
+
+  /**
+   *  레디스 데이터를 전부 날리는거니 사용주의
+   */
+  // async flushAll(): Promise<void> {
+  //   await this.client.flushall();
+  // }
+
 }
