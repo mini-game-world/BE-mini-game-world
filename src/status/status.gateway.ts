@@ -102,9 +102,6 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     channel.on('pong', () => this.handlePong(channel));
     channel.on('disconnect', () => this.handleDisconnect(channel));
   }
-  private sendPing() {
-    this.geckosIoService.io.emit("ping", 1);
-  }
 
   private sendPing() {
     this.geckosIoService.io.clients.forEach((channel: any) => {
@@ -135,6 +132,9 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     }
     channel.broadcast.emit("playerDisconnected", channel.id);
     this.statusService.disconnectBombUser(channel.id);
+
+    const survivorCount = this.statusService.getPlayGameUserList().length;
+    this.handleBombGamePlayInfo(survivorCount);
 
     this.logger.log(`Client disconnected: ${channel.id}`);
     const size = this.statusService.bombGameRoomPosition.size;
@@ -232,8 +232,8 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   @OnEvent('bombGame.playInfo')
-  handleBombGamePlayInfo(playInfo: { playerCount : number, survivorCount : number }) {
-    this.geckosIoService.io.emit("playInfo", playInfo);
+  handleBombGamePlayInfo(survivorCount : number) {
+    this.geckosIoService.io.emit("playInfo", survivorCount);
   }
 
   @OnEvent('bombGame.timer')
