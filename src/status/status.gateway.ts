@@ -118,7 +118,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     this.statusService.checkOverlappingItemUser(channel.id, data.x, data.y);
   }
 
-  handleAttackPosition(channel: any, data: playerAttackPositionDTO): void {
+handleAttackPosition(channel: any, data: playerAttackPositionDTO):void   {
     const clientData = this.statusService.bombGameRoomPosition.get(channel.id);
     if (!clientData) {
       this.logger.warn(`Client ${channel.id} sent attack position but is not in any room`);
@@ -184,13 +184,8 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     //때린 수 만큼 정보 업데이트 시킴
     hitResults.forEach(async (result) => {
       await this.cacheManager.incrementHitCount(channel.id);
+      channel.broadcast.emit("currentHitRanker", await this.cacheManager.getTopPlayerByHits());
     })
-
-    //현재 랭커
-    const testLog = this.cacheManager.getTopPlayerByHits()
-    console.log(testLog);
-    console.log(JSON.stringify(testLog));
-    channel.broadcast.emit("currentHitRanker",testLog);
   }
 
   bombGameStart() {
@@ -221,7 +216,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   @OnEvent('bombGame.changeBombUser')
-  handleBombGameChangeBombUsers(changeBombUserList: string[]) {
+  async handleBombGameChangeBombUsers(changeBombUserList: string[]) {
     this.logger.log(
       `${changeBombUserList[1]}에서 ${changeBombUserList[0]}으로 폭탄이 옮겨졌습니다.`,
     );
@@ -229,7 +224,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     this.geckosIoService.io.emit("changeBombUser", changeBombUserList);
     this.cacheManager.incrementBombCount(changeBombUserList[1]);
     //현재 랭커
-    this.geckosIoService.io.emit("currentBombRanker", this.cacheManager.getTopPlayerByBombs());
+    this.geckosIoService.io.emit("currentBombRanker", await  this.cacheManager.getTopPlayerByBombs());
   }
 
   @OnEvent('bombGame.winner')
