@@ -237,11 +237,11 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       };
       this.logger.log("gameResult", result);
       // this.rankService.gameEnd();
-      this.cacheManager.flushAll();
+      await this.cacheManager.delGameRankingInfo();
       this.geckosIoService.io.emit("gameWinner", result);
       if (bombMaster) timeCount += 1;
       if (punchingBag) timeCount += 1;
-      this.statsService.saveTopPlayersToDB(bombMaster, punchingBag);
+      await this.statsService.saveTopPlayersToDB(bombMaster, punchingBag);
     }
 
     setTimeout(() => {
