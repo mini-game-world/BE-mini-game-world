@@ -3,38 +3,57 @@ import { RedisService } from '../redis/redis.service.js';
 
 @Injectable()
 export class CacheService {
-  constructor(private readonly redisService: RedisService) {}
+  constructor(private readonly redisService: RedisService) {
+    this.client = this.redisService.getClient();
+  }
+
+  private readonly BOMB_RANKINGS:string = 'bombRankings'
+  private readonly HIT_RANKINGS:string = 'hitRankings'
+  private client;
 
   /**
    * Redis - string
    */
   // async set(key: string, value: string) {
-  //   const client = this.redisService.getClient();
-  //   await client.set(key, value);
+  //   await this.client.set(key, value);
   // }
 
   /**
    * Redis - string
    */
   // async get(key: string): Promise<string | null> {
-  //   const client = this.redisService.getClient();
-  //   return await client.get(key);
+  //   return await this.client.get(key);
   // }
 
   /**
    * Redis - string
    */
   // async increment(key: string): Promise<number> {
-  //   const client = this.redisService.getClient();
-  //   return await client.incr(key);
+  //   return await this.client.incr(key);
   // }
+
+  /**
+   * Redis - sorted-set
+   */
+  async incrementBombCount(player: string): Promise<number> {
+    const newCount = await this.client.zincrby(this.BOMB_RANKINGS, 1, player);
+    return parseInt(newCount, 10)
+  }
+
+  /**
+   * Redis - sorted-set
+   */
+  async incrementHitCount(player: string): Promise<number> {
+    const newCount = await this.client.zincrby(this.HIT_RANKINGS, 1, player);
+    return parseInt(newCount, 10)
+  }
+
 
   /**
    * Redis - 공용인듯 ?
    */
   async del(key: string): Promise<void> {
-    const client = this.redisService.getClient();
-    await client.del(key);
+    await this.client.del(key);
   }
 
 
@@ -42,29 +61,19 @@ export class CacheService {
    *  레디스 데이터를 전부 날리는거니 사용주의
    */
   async flushAll(): Promise<void> {
-    const client = this.redisService.getClient();
-    await client.flushall();
+    await this.client.flushall();
   }
 
 
-  async getBombCount(player: string): Promise<number> {
-    const count = await this.get(`${player}:bomb`);
-    return count ? parseInt(count, 10) : 0;
-  }
 
-  async getHitCount(player: string): Promise<number> {
-    const count = await this.get(`${player}:hit`);
-    return count ? parseInt(count, 10) : 0;
-  }
 
   async getTopPlayerByBombs(): Promise<{ playerId: string, count: number } | null> {
-    const client = this.redisService.getClient();
-    const keys = await client.keys('*:bomb');
+    const keys = await this.client.keys('*:bomb');
     let topPlayer = null;
     let maxCount = -1;
 
     for (const key of keys) {
-      const count = await client.get(key);
+      const count = await this.client.get(key);
       if (count && parseInt(count, 10) > maxCount) {
         maxCount = parseInt(count, 10);
         topPlayer = key.split(':')[0];
@@ -75,13 +84,12 @@ export class CacheService {
   }
 
   async getTopPlayerByHits(): Promise<{ playerId: string, count: number } | null> {
-    const client = this.redisService.getClient();
-    const keys = await client.keys('*:hit');
+    const keys = await this.client.keys('*:hit');
     let topPlayer = null;
     let maxCount = -1;
 
     for (const key of keys) {
-      const count = await client.get(key);
+      const count = await this.client.get(key);
       if (count && parseInt(count, 10) > maxCount) {
         maxCount = parseInt(count, 10);
         topPlayer = key.split(':')[0];
@@ -90,6 +98,16 @@ export class CacheService {
 
     return topPlayer && maxCount > 0 ? { playerId: topPlayer, count: maxCount } : null;
   }
+
+  // async getBombCount(player: string): Promise<number> {
+  //   const count = await this.get(`${player}:bomb`);
+  //   return count ? parseInt(count, 10) : 0;
+  // }
+  //
+  // async getHitCount(player: string): Promise<number> {
+  //   const count = await this.get(`${player}:hit`);
+  //   return count ? parseInt(count, 10) : 0;
+  // }
 
   // async incrementBombCount(player: string): Promise<number> {
   //   return await this.increment(`${player}:bomb`);
