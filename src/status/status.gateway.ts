@@ -122,6 +122,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   handlePong(channel: any) {
+    this.logger.log(`received pong from => ${channel.id}`);
     this.pingMissCounts.set(channel.id, 0); // ping 응답이 오면 카운트 초기화
   }
 
