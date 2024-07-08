@@ -118,7 +118,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     this.statusService.checkOverlappingItemUser(channel.id, data.x, data.y);
   }
 
-handleAttackPosition(channel: any, data: playerAttackPositionDTO):void   {
+async handleAttackPosition(channel: any, data: playerAttackPositionDTO)   {
     const clientData = this.statusService.bombGameRoomPosition.get(channel.id);
     if (!clientData) {
       this.logger.warn(`Client ${channel.id} sent attack position but is not in any room`);
