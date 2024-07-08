@@ -47,6 +47,7 @@ export class StatusBombGameService {
   private TREASURE_CHEST_HILL_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 3328, y: 512 ,isNotExist:true };
   private readonly ITEM_RADIUS: number = 120;
 
+
   private logger: Logger = new Logger("BombGameService");
 
 
@@ -138,7 +139,7 @@ export class StatusBombGameService {
           const player = this.bombGameRoomPosition.get(user);
           const distance = Math.sqrt(
             Math.pow(myPosition.x - player.x, 2) +
-              Math.pow(myPosition.y - player.y, 2),
+            Math.pow(myPosition.y - player.y, 2),
           );
           return (
             distance <= this.BOMB_RADIUS && this.bombUserList.get(user) === 0
@@ -265,6 +266,11 @@ export class StatusBombGameService {
         //아이템좌표 생성
         this.makeGameItem();
         this.startMapShrink();
+
+        const playerCount = this.playUserCount + this.deadPlayers.length;
+        const survivorCount = this.playUserCount;
+        const playInfo = { playerCount, survivorCount };
+        this.eventEmitter.emit('bombGame.playInfo', playInfo);
       }
     }, this.TIMER_INTERVAL_MS);
   }
