@@ -184,6 +184,8 @@ handleAttackPosition(channel: any, data: playerAttackPositionDTO):void   {
     //때린 수 만큼 정보 업데이트 시킴
     hitResults.forEach(async (result) => {
       await this.cacheManager.incrementHitCount(channel.id);
+      const test =  await this.cacheManager.getTopPlayerByHits()
+      console.log(`testlog --->${test}`)
       channel.broadcast.emit("currentHitRanker", await this.cacheManager.getTopPlayerByHits());
     })
   }
