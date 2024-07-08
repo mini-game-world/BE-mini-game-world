@@ -180,10 +180,10 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
     this.logger.log(`Attack results: ${JSON.stringify(hitResults)}`);
 
-    //맞은 정보 업데이트 시킴
-    if (hitResults.length > 0) {
-      this.cacheManager.incrementHitCount(channel.id);
-    }
+    //때린 수 만큼 정보 업데이트 시킴
+    hitResults.forEach(async (result) => {
+      await this.cacheManager.incrementHitCount(channel.id);
+    })
   }
 
   bombGameStart() {

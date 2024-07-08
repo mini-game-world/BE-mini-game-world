@@ -45,7 +45,7 @@ export class StatusBombGameService {
   private HOUSE_HILL_BRIDGE_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 2304, y: 160 ,isNotExist:true };
   private WATER_BRIDGE_CENTER_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 1120, y: 1824 ,isNotExist:true };
   private TREASURE_CHEST_HILL_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 3328, y: 512 ,isNotExist:true };
-  private readonly ITEM_RADIUS: number = 80;
+  private readonly ITEM_RADIUS: number = 120;
 
   private logger: Logger = new Logger("BombGameService");
 
