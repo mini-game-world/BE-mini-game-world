@@ -197,7 +197,15 @@ async handleAttackPosition(channel: any, data: playerAttackPositionDTO)   {
 
   @OnEvent('bombGame.start')
   handleBombGameStart(playGameUserList: string[], bombUserList: string[]) {
+    const playerCount = playGameUserList.length;
+    const userInfo = {playerCount : playerCount, survivorCount : playerCount};
     this.geckosIoService.io.emit("bombUsers", bombUserList);
+    this.geckosIoService.io.emit("playInfo", userInfo);
+  }
+
+  @OnEvent('bombGame.playInfo')
+  handleBombGamePlayInfo(playInfo: { playerCount : number, survivorCount : number }) {
+    this.geckosIoService.io.emit("playInfo", playInfo);
   }
 
   @OnEvent('bombGame.timer')

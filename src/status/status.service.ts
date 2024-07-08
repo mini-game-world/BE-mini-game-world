@@ -9,7 +9,7 @@ export class StatusBombGameService {
   private intervalId: any = null;
   constructor(
     private eventEmitter: EventEmitter2,
-  ) {}
+  ) { }
 
   // bomb 게임방에 입장유저
   bombGameRoomPosition: Map<
@@ -58,7 +58,7 @@ export class StatusBombGameService {
     return Array.from(this.playGameUser);
   }
 
-  setBombGameRoomPosition(clientId: string, x: number, y: number){
+  setBombGameRoomPosition(clientId: string, x: number, y: number) {
     const status = this.bombGameRoomPosition.get(clientId);
     if (status) {
       status.x = x;
@@ -102,7 +102,7 @@ export class StatusBombGameService {
           const player = this.bombGameRoomPosition.get(user);
           const distance = Math.sqrt(
             Math.pow(myPosition.x - player.x, 2) +
-              Math.pow(myPosition.y - player.y, 2),
+            Math.pow(myPosition.y - player.y, 2),
           );
           return distance <= this.BOMB_RADIUS;
         });
@@ -265,6 +265,11 @@ export class StatusBombGameService {
         //아이템좌표 생성
         this.makeGameItem();
         this.startMapShrink();
+
+        const playerCount = this.playUserCount + this.deadPlayers.length;
+        const survivorCount = this.playUserCount;
+        const playInfo = { playerCount, survivorCount };
+        this.eventEmitter.emit('bombGame.playInfo', playInfo);
       }
     }, this.TIMER_INTERVAL_MS);
   }
@@ -374,7 +379,7 @@ export class StatusBombGameService {
     this.mapShrinkNumber++;
   }
 
-  private setGameItemStatus(){
+  private setGameItemStatus() {
     this.HOUSE_HILL_BRIDGE_ITEM.isNotExist = true;
     this.WATER_BRIDGE_CENTER_ITEM.isNotExist = true;
     this.TREASURE_CHEST_HILL_ITEM.isNotExist = true;
