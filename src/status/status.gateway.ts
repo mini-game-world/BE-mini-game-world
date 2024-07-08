@@ -108,10 +108,11 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     this.geckosIoService.io.clients.forEach((channel: any) => {
       channel.emit('ping');
       setTimeout(() => {
-        if (!this.pingMissCounts.has(channel.id)) return;
+        if (!this.pingMissCounts.has(channel.id)) this.handleDisconnect(channel);
         let missedPings = this.pingMissCounts.get(channel.id);
         if (missedPings >= this.MAX_MISSED_PINGS) {
-          channel.disconnect();
+          this.handleDisconnect(channel);
+          this.pingMissCounts.delete(channel.id);
           this.logger.log(`Client ${channel.id} disconnected due to missed pings`);
         } else {
           this.pingMissCounts.set(channel.id, missedPings + 1);
