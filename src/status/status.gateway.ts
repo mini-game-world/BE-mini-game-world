@@ -104,11 +104,10 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   private sendPing() {
-    this.logger.log(`io 객체 확인한다~~~~${JSON.stringify(this.geckosIoService.io.connections)}`);
-    this.logger.log(`io 객체 확인한다~~~~${JSON.stringify(this.geckosIoService.io.sockets)}`);
-    if (!this.geckosIoService.io.clients) return;
-    this.geckosIoService.io.connections.forEach((channel: any) => {
-      channel.emit('ping', 1);
+    this.logger.log(`io 객체 확인한다~~~~${JSON.stringify(this.geckosIoService.io.connectionsManager.connections)}`);
+    if (!this.geckosIoService.io.connectionsManager.connections) return;
+    this.geckosIoService.io.connectionsManager.connections.forEach((channel: any) => {
+      channel.emit('ping');
       setTimeout(() => {
         if (!this.pingMissCounts.has(channel.id)) this.handleDisconnect(channel);
         let missedPings = this.pingMissCounts.get(channel.id);
