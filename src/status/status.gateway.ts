@@ -17,10 +17,6 @@ import { StatsService } from '../cache/stats.service.js';
 @WebSocketGateway({ cors: { origin: "*" } })
 export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   private CHECK_INTERVAL = 5000;
-  private PING_INTERVAL = 1000;
-  private PING_TIMEOUT = 1000;
-  private MAX_MISSED_PINGS = 3;
-  private pingMissCounts: Map<string, number> = new Map();
   private MIN_PLAYERS_FOR_BOMB_GAME = 3; // 최소 플레이어 수, 예시로 4명 설정
   private isCheckingBombRooms = false; // checkBombRooms 실행 여부를 추적
   constructor(
@@ -31,7 +27,6 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     private readonly statsService: StatsService,
   ) {
     setInterval(this.safeCheckBombRooms.bind(this), this.CHECK_INTERVAL);
-    setInterval(this.sendPing.bind(this), this.PING_INTERVAL);
   }
   private logger: Logger = new Logger("Status-Gateway");
 
@@ -67,8 +62,6 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       isDead: 0,
     });
 
-    this.pingMissCounts.set(channel.id, 0);
-
     console.log(
       `${JSON.stringify(this.statusService.bombGameRoomPosition.get(channel.id))}`,
     );
@@ -99,32 +92,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     channel.on('attackPosition', (data: playerAttackPositionDTO) =>
       this.handleAttackPosition(channel, data),
     );
-    channel.on('pong', () => this.handlePong(channel));
     channel.on('disconnect', () => this.handleDisconnect(channel));
-  }
-
-  private sendPing() {
-    this.logger.log(`io 객체 확인한다~~~~${JSON.stringify(this.geckosIoService.io.connectionsManager.connections)}`);
-    if (!this.geckosIoService.io.connectionsManager.connections) return;
-    this.geckosIoService.io.connectionsManager.connections.forEach((channel: any) => {
-      channel.emit('ping');
-      setTimeout(() => {
-        if (!this.pingMissCounts.has(channel.id)) this.handleDisconnect(channel);
-        let missedPings = this.pingMissCounts.get(channel.id);
-        if (missedPings >= this.MAX_MISSED_PINGS) {
-          this.handleDisconnect(channel);
-          this.pingMissCounts.delete(channel.id);
-          this.logger.log(`Client ${channel.id} disconnected due to missed pings`);
-        } else {
-          this.pingMissCounts.set(channel.id, missedPings + 1);
-        }
-      }, this.PING_TIMEOUT);
-    });
-  }
-
-  handlePong(channel: any) {
-    this.logger.log(`received pong from => ${channel.id}`);
-    this.pingMissCounts.set(channel.id, 0); // ping 응답이 오면 카운트 초기화
   }
 
   handleDisconnect(channel: any): any {
