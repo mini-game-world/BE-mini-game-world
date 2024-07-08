@@ -265,11 +265,6 @@ export class StatusBombGameService {
         //아이템좌표 생성
         this.makeGameItem();
         this.startMapShrink();
-
-        const playerCount = this.playUserCount + this.deadPlayers.length;
-        const survivorCount = this.playUserCount;
-        const playInfo = { playerCount, survivorCount };
-        this.eventEmitter.emit('bombGame.playInfo', playInfo);
       }
     }, this.TIMER_INTERVAL_MS);
   }
