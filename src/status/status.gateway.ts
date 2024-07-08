@@ -62,6 +62,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       isPlay: 0,
       isDead: 0,
     });
+
     console.log(
       `${JSON.stringify(this.statusService.bombGameRoomPosition.get(channel.id))}`,
     );
@@ -92,7 +93,6 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     channel.on('attackPosition', (data: playerAttackPositionDTO) =>
       this.handleAttackPosition(channel, data),
     );
-
     channel.on('disconnect', () => this.handleDisconnect(channel));
   }
 
@@ -103,9 +103,12 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     } else {
       console.error(`Channel ID ${channel.id} not found in bombGameRoomPosition.`);
     }
-    channel.broadcast.emit("playerDisconnected", channel.id);
     this.statusService.disconnectBombUser(channel.id);
-
+    
+    const survivorCount = this.statusService.getPlayGameUserList().length;
+    this.handleBombGamePlayInfo(survivorCount);
+    
+    channel.broadcast.emit("playerDisconnected", channel.id);
     this.logger.log(`Client disconnected: ${channel.id}`);
     const size = this.statusService.bombGameRoomPosition.size;
     this.logger.log(`Number of connected clients: ${size}`);
@@ -197,15 +200,13 @@ async handleAttackPosition(channel: any, data: playerAttackPositionDTO)   {
 
   @OnEvent('bombGame.start')
   handleBombGameStart(playGameUserList: string[], bombUserList: string[]) {
-    const playerCount = playGameUserList.length;
-    const userInfo = {playerCount : playerCount, survivorCount : playerCount};
     this.geckosIoService.io.emit("bombUsers", bombUserList);
-    this.geckosIoService.io.emit("playInfo", userInfo);
+    this.geckosIoService.io.emit("playInfo", playGameUserList.length);
   }
 
   @OnEvent('bombGame.playInfo')
-  handleBombGamePlayInfo(playInfo: { playerCount : number, survivorCount : number }) {
-    this.geckosIoService.io.emit("playInfo", playInfo);
+  handleBombGamePlayInfo(survivorCount : number) {
+    this.geckosIoService.io.emit("playInfo", survivorCount);
   }
 
   @OnEvent('bombGame.timer')

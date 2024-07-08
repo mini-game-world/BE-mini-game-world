@@ -240,6 +240,7 @@ export class StatusBombGameService {
         if (checkWinner) {
           this.logger.debug(`checkWinner ${JSON.stringify(checkWinner)}`);
           this.eventEmitter.emit('bombGame.winner', checkWinner);
+          this.eventEmitter.emit('bombGame.playInfo', this.playUserCount);
           this.bombGameRoomPosition.forEach((value) => {
             value.isPlay = 0;
             value.isDead = 0;
@@ -267,10 +268,7 @@ export class StatusBombGameService {
         this.makeGameItem();
         this.startMapShrink();
 
-        const playerCount = this.playUserCount + this.deadPlayers.length;
-        const survivorCount = this.playUserCount;
-        const playInfo = { playerCount, survivorCount };
-        this.eventEmitter.emit('bombGame.playInfo', playInfo);
+        this.eventEmitter.emit('bombGame.playInfo', this.playUserCount);
       }
     }, this.TIMER_INTERVAL_MS);
   }
