@@ -49,6 +49,9 @@ export class CacheService {
   }
 
 
+
+
+
   /**
    * Redis - 공용인듯 ?
    */
@@ -67,37 +70,37 @@ export class CacheService {
 
 
 
-  async getTopPlayerByBombs(): Promise<{ playerId: string, count: number } | null> {
-    const keys = await this.client.keys('*:bomb');
-    let topPlayer = null;
-    let maxCount = -1;
-
-    for (const key of keys) {
-      const count = await this.client.get(key);
-      if (count && parseInt(count, 10) > maxCount) {
-        maxCount = parseInt(count, 10);
-        topPlayer = key.split(':')[0];
-      }
-    }
-
-    return topPlayer && maxCount > 0 ? { playerId: topPlayer, count: maxCount } : null;
-  }
-
-  async getTopPlayerByHits(): Promise<{ playerId: string, count: number } | null> {
-    const keys = await this.client.keys('*:hit');
-    let topPlayer = null;
-    let maxCount = -1;
-
-    for (const key of keys) {
-      const count = await this.client.get(key);
-      if (count && parseInt(count, 10) > maxCount) {
-        maxCount = parseInt(count, 10);
-        topPlayer = key.split(':')[0];
-      }
-    }
-
-    return topPlayer && maxCount > 0 ? { playerId: topPlayer, count: maxCount } : null;
-  }
+  // async getTopPlayerByBombs(): Promise<{ playerId: string, count: number } | null> {
+  //   const keys = await this.client.keys('*:bomb');
+  //   let topPlayer = null;
+  //   let maxCount = -1;
+  //
+  //   for (const key of keys) {
+  //     const count = await this.client.get(key);
+  //     if (count && parseInt(count, 10) > maxCount) {
+  //       maxCount = parseInt(count, 10);
+  //       topPlayer = key.split(':')[0];
+  //     }
+  //   }
+  //
+  //   return topPlayer && maxCount > 0 ? { playerId: topPlayer, count: maxCount } : null;
+  // }
+  //
+  // async getTopPlayerByHits(): Promise<{ playerId: string, count: number } | null> {
+  //   const keys = await this.client.keys('*:hit');
+  //   let topPlayer = null;
+  //   let maxCount = -1;
+  //
+  //   for (const key of keys) {
+  //     const count = await this.client.get(key);
+  //     if (count && parseInt(count, 10) > maxCount) {
+  //       maxCount = parseInt(count, 10);
+  //       topPlayer = key.split(':')[0];
+  //     }
+  //   }
+  //
+  //   return topPlayer && maxCount > 0 ? { playerId: topPlayer, count: maxCount } : null;
+  // }
 
   // async getBombCount(player: string): Promise<number> {
   //   const count = await this.get(`${player}:bomb`);
