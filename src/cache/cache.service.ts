@@ -5,38 +5,47 @@ import { RedisService } from '../redis/redis.service.js';
 export class CacheService {
   constructor(private readonly redisService: RedisService) {}
 
-  async set(key: string, value: string) {
-    const client = this.redisService.getClient();
-    await client.set(key, value);
-  }
+  /**
+   * Redis - string
+   */
+  // async set(key: string, value: string) {
+  //   const client = this.redisService.getClient();
+  //   await client.set(key, value);
+  // }
 
-  async get(key: string): Promise<string | null> {
-    const client = this.redisService.getClient();
-    return await client.get(key);
-  }
+  /**
+   * Redis - string
+   */
+  // async get(key: string): Promise<string | null> {
+  //   const client = this.redisService.getClient();
+  //   return await client.get(key);
+  // }
 
+  /**
+   * Redis - string
+   */
+  // async increment(key: string): Promise<number> {
+  //   const client = this.redisService.getClient();
+  //   return await client.incr(key);
+  // }
+
+  /**
+   * Redis - 공용인듯 ?
+   */
   async del(key: string): Promise<void> {
     const client = this.redisService.getClient();
     await client.del(key);
   }
 
-  async increment(key: string): Promise<number> {
-    const client = this.redisService.getClient();
-    return await client.incr(key);
-  }
 
+  /**
+   *  레디스 데이터를 전부 날리는거니 사용주의
+   */
   async flushAll(): Promise<void> {
     const client = this.redisService.getClient();
     await client.flushall();
   }
 
-  async incrementBombCount(player: string): Promise<number> {
-    return await this.increment(`${player}:bomb`);
-  }
-
-  async incrementHitCount(player: string): Promise<number> {
-    return await this.increment(`${player}:hit`);
-  }
 
   async getBombCount(player: string): Promise<number> {
     const count = await this.get(`${player}:bomb`);
@@ -81,4 +90,12 @@ export class CacheService {
 
     return topPlayer && maxCount > 0 ? { playerId: topPlayer, count: maxCount } : null;
   }
+
+  // async incrementBombCount(player: string): Promise<number> {
+  //   return await this.increment(`${player}:bomb`);
+  // }
+
+  // async incrementHitCount(player: string): Promise<number> {
+  //   return await this.increment(`${player}:hit`);
+  // }
 }
