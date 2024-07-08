@@ -37,6 +37,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private bombGameStartFlag = 0;
   private generator = new RandomNumberGenerator(1, 30);
 
+
   async afterInit() {
     this.logger.log('Init StatusGateway');
 
@@ -184,6 +185,9 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     hitResults.forEach(async (result) => {
       await this.cacheManager.incrementHitCount(channel.id);
     })
+
+    //현재 랭커
+    channel.broadcast.emit("currentHitRanker", this.cacheManager.getTopPlayerByHits());
   }
 
   bombGameStart() {
@@ -221,6 +225,8 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     // //폭탄 옮긴유저 카운트
     this.geckosIoService.io.emit("changeBombUser", changeBombUserList);
     this.cacheManager.incrementBombCount(changeBombUserList[1]);
+    //현재 랭커
+    this.geckosIoService.io.emit("currentBombRanker", this.cacheManager.getTopPlayerByBombs());
   }
 
   @OnEvent('bombGame.winner')
