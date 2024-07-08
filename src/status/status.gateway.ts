@@ -187,7 +187,10 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     })
 
     //현재 랭커
-    channel.broadcast.emit("currentHitRanker", this.cacheManager.getTopPlayerByHits());
+    const testLog = this.cacheManager.getTopPlayerByHits()
+    console.log(testLog);
+    console.log(JSON.stringify(testLog));
+    channel.broadcast.emit("currentHitRanker",testLog);
   }
 
   bombGameStart() {
