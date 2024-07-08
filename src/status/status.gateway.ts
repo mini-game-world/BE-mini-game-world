@@ -131,12 +131,12 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     } else {
       console.error(`Channel ID ${channel.id} not found in bombGameRoomPosition.`);
     }
-    channel.broadcast.emit("playerDisconnected", channel.id);
     this.statusService.disconnectBombUser(channel.id);
-
+    
     const survivorCount = this.statusService.getPlayGameUserList().length;
     this.handleBombGamePlayInfo(survivorCount);
-
+    
+    channel.broadcast.emit("playerDisconnected", channel.id);
     this.logger.log(`Client disconnected: ${channel.id}`);
     const size = this.statusService.bombGameRoomPosition.size;
     this.logger.log(`Number of connected clients: ${size}`);
