@@ -19,6 +19,8 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private CHECK_INTERVAL = 5000;
   private MIN_PLAYERS_FOR_BOMB_GAME = 3; // 최소 플레이어 수, 예시로 4명 설정
   private isCheckingBombRooms = false; // checkBombRooms 실행 여부를 추적
+  private pingCounts: Map<string, number> = new Map();
+  private channels: Map<string, any> = new Map(); // channel.id와 채널 객체를 저장하기 위한 맵
   constructor(
     private readonly statusService: StatusBombGameService,
     private readonly randomNicknameService: RandomNicknameService,
@@ -46,6 +48,8 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     this.geckosIoService.io.onConnection((channel: any) => {
       this.handleConnection(channel);
     });
+
+    this.startPing();
   }
 
   async handleConnection(channel: any): Promise<void> {
@@ -94,9 +98,36 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       this.handleAttackPosition(channel, data),
     );
     channel.on('disconnect', () => this.handleDisconnect(channel));
+
+    channel.on('pong', () => this.handlePong(channel));
+    this.channels.set(channel.id, channel); // 채널 객체 저장
+    this.pingCounts.set(channel.id, 0);
+  }
+
+  private startPing() {
+    setInterval(() => {
+      this.geckosIoService.io.emit('ping');
+
+      this.pingCounts.forEach((count, channelId) => {
+        if (count >= 3) {
+          const channel = this.channels.get(channelId); // 채널 객체 가져오기
+          if (channel) {
+            this.handleDisconnect(channel);
+          }
+        } else {
+          this.pingCounts.set(channelId, count + 1);
+        }
+      });
+    }, 1000);
+  }
+
+  private handlePong(channel: any) {
+    this.pingCounts.set(channel.id, 0);
   }
 
   handleDisconnect(channel: any): any {
+    this.channels.delete(channel.id); // 채널 객체 삭제
+    this.pingCounts.delete(channel.id); // ping 카운트 삭제
     const position = this.statusService.bombGameRoomPosition.get(channel.id);
     if (position) {
       this.generator.restoreNumber(position.avatar);
