@@ -19,7 +19,6 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private CHECK_INTERVAL = 5000;
   private MIN_PLAYERS_FOR_BOMB_GAME = 3; // 최소 플레이어 수, 예시로 4명 설정
   private isCheckingBombRooms = false; // checkBombRooms 실행 여부를 추적
-  private pingInterval: any;
   private pingCounts: Map<string, number> = new Map();
   private channels: Map<string, any> = new Map(); // channel.id와 채널 객체를 저장하기 위한 맵
   constructor(
@@ -106,7 +105,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   private startPing() {
-    this.pingInterval = setInterval(() => {
+    setInterval(() => {
       this.geckosIoService.io.emit('ping');
 
       this.pingCounts.forEach((count, channelId) => {
