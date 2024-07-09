@@ -20,7 +20,6 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private MIN_PLAYERS_FOR_BOMB_GAME = 3; // 최소 플레이어 수, 예시로 4명 설정
   private isCheckingBombRooms = false; // checkBombRooms 실행 여부를 추적
   private pingInterval: any;
-  private pingTimeout = 3000;
   private pingCounts: Map<string, number> = new Map();
   private channels: Map<string, any> = new Map(); // channel.id와 채널 객체를 저장하기 위한 맵
   constructor(
@@ -113,12 +112,10 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       this.pingCounts.forEach((count, channelId) => {
         if (count >= 3) {
           const channel = this.channels.get(channelId); // 채널 객체 가져오기
-          this.logger.fatal(`getchannel로 뽑아낸 유저입니다~~~~~~~~~~~~~~~~ ${channel}`);
           if (channel) {
             this.handleDisconnect(channel);
           }
         } else {
-          this.logger.fatal(`이 유저는 count는 ${count}네요~~~~~~~~~~~~~~~~~~~~~ ${channelId}`);
           this.pingCounts.set(channelId, count + 1);
         }
       });
@@ -126,7 +123,6 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   private handlePong(channel: any) {
-    this.logger.fatal(`클라로부터 pong을 받았습니다~~~~~~~~~~~~~~~~ ${channel}`);
     this.pingCounts.set(channel.id, 0);
   }
 
