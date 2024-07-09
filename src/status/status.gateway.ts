@@ -2,9 +2,12 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
   OnGatewayInit,
+  SubscribeMessage,
   WebSocketGateway,
+  WebSocketServer
 } from "@nestjs/websockets";
 import { Logger } from "@nestjs/common";
+import { Server, Socket } from "socket.io";
 import { StatusBombGameService } from "./status.service.js";
 import { RandomNumberGenerator } from './Utils/utils.RandomNumberGenerator.js'
 import { OnEvent } from "@nestjs/event-emitter";
@@ -24,12 +27,16 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   constructor(
     private readonly statusService: StatusBombGameService,
     private readonly randomNicknameService: RandomNicknameService,
-    private readonly geckosIoService: GeckosIoService,
+    // private readonly geckosIoService: GeckosIoService,
     private readonly cacheManager: CacheService,
     private readonly statsService: StatsService,
   ) {
     setInterval(this.safeCheckBombRooms.bind(this), this.CHECK_INTERVAL);
   }
+
+  @WebSocketServer()
+  server: Server;
+
   private logger: Logger = new Logger("Status-Gateway");
 
 
@@ -41,14 +48,6 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
 
   async afterInit() {
-    this.logger.log('Init StatusGateway');
-
-    await this.geckosIoService.waitForInitialization();
-
-    this.geckosIoService.io.onConnection((channel: any) => {
-      this.handleConnection(channel);
-    });
-
     this.startPing();
   }
 
@@ -91,13 +90,13 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       `Number of connected clients: ${this.statusService.bombGameRoomPosition.size}`,
     );
 
-    channel.on('playerMovement', (data: playerMovementDTO) =>
-      this.playerPosition(channel, data),
-    );
-    channel.on('attackPosition', (data: playerAttackPositionDTO) =>
-      this.handleAttackPosition(channel, data),
-    );
-    channel.on('disconnect', () => this.handleDisconnect(channel));
+    // channel.on('playerMovement', (data: playerMovementDTO) =>
+    //   this.playerPosition(channel, data),
+    // );
+    // channel.on('attackPosition', (data: playerAttackPositionDTO) =>
+    //   this.handleAttackPosition(channel, data),
+    // );
+    // channel.on('disconnect', () => this.handleDisconnect(channel));
 
     channel.on('pong', () => this.handlePong(channel));
     this.channels.set(channel.id, channel); // 채널 객체 저장
@@ -106,7 +105,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   private startPing() {
     setInterval(() => {
-      this.geckosIoService.io.emit('ping');
+      this.server.emit('ping');
 
       this.pingCounts.forEach((count, channelId) => {
         if (count >= 3) {
@@ -121,8 +120,14 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     }, 1000);
   }
 
-  private handlePong(channel: any) {
+  @SubscribeMessage("pong")
+  handlePong(channel: any) {
     this.pingCounts.set(channel.id, 0);
+  }
+
+  @SubscribeMessage("latencyRequest")
+  latency(channel: any, data) {
+    channel.emit("latencyResponse", data);
   }
 
   handleDisconnect(channel: any): any {
@@ -145,6 +150,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     this.logger.log(`Number of connected clients: ${size}`);
   }
 
+  @SubscribeMessage("playerMovement")
   playerPosition(channel: any, data: playerMovementDTO): void {
     this.statusService.setBombGameRoomPosition(channel.id, data.x, data.y);
     channel.broadcast.emit("playerMoved", { playerId: channel.id, x: data.x, y: data.y });
@@ -152,6 +158,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     this.statusService.checkOverlappingItemUser(channel.id, data.x, data.y);
   }
 
+  @SubscribeMessage("attackPosition")
 async handleAttackPosition(channel: any, data: playerAttackPositionDTO)   {
     const clientData = this.statusService.bombGameRoomPosition.get(channel.id);
     if (!clientData) {
@@ -208,7 +215,7 @@ async handleAttackPosition(channel: any, data: playerAttackPositionDTO)   {
     });
 
     // 히트 결과를 해당 룸의 모든 클라이언트에게 알림
-    this.geckosIoService.io.emit("attackedPlayers", hitResults);
+    this.server.emit("attackedPlayers", hitResults);
 
     // 공격중인 유저를 모두에게 전파(화면에 공격중인것을 표시하기 위해)
     channel.broadcast.emit("attackPlayer", channel.id);
@@ -218,42 +225,42 @@ async handleAttackPosition(channel: any, data: playerAttackPositionDTO)   {
     //때린 수 만큼 정보 업데이트 시킴
     hitResults.forEach(async (result) => {
       await this.cacheManager.incrementHitCount(channel.id);
-      this.geckosIoService.io.emit("currentHitRanker", await this.cacheManager.getTopPlayerByHits());
+      this.server.emit("currentHitRanker", await this.cacheManager.getTopPlayerByHits());
     })
 
   }
 
   bombGameStart() {
     this.bombGameStartFlag = 1;
-    this.geckosIoService.io.emit("playingGame", this.bombGameStartFlag);
+    this.server.emit("playingGame", this.bombGameStartFlag);
     this.statusService.startBombGameWithTimer();
   }
 
   @OnEvent('bombGame.start')
   handleBombGameStart(playGameUserList: string[], bombUserList: string[]) {
-    this.geckosIoService.io.emit("bombUsers", bombUserList);
-    this.geckosIoService.io.emit("playInfo", playGameUserList.length);
+    this.server.emit("bombUsers", bombUserList);
+    this.server.emit("playInfo", playGameUserList.length);
   }
 
   @OnEvent('bombGame.playInfo')
   handleBombGamePlayInfo(survivorCount : number) {
-    this.geckosIoService.io.emit("playInfo", survivorCount);
+    this.server.emit("playInfo", survivorCount);
   }
 
   @OnEvent('bombGame.timer')
   handleBombGameTimer(remainingTime: number) {
-    this.geckosIoService.io.emit("bombTimer", { remainingTime });
+    this.server.emit("bombTimer", { remainingTime });
   }
 
   @OnEvent('bombGame.deadUsers')
   handleBombGameDeadUsers(bombUserList: string[]) {
-    this.geckosIoService.io.emit("deadUsers", bombUserList);
+    this.server.emit("deadUsers", bombUserList);
   }
 
   @OnEvent('bombGame.newBombUsers')
   handleBombGameNewBombUsers(bombUserList: string[]) {
     this.logger.log(`새로운 폭탄멤버는 ${bombUserList}`);
-    this.geckosIoService.io.emit("bombUsers", bombUserList);
+    this.server.emit("bombUsers", bombUserList);
   }
 
   @OnEvent('bombGame.changeBombUser')
@@ -262,10 +269,10 @@ async handleAttackPosition(channel: any, data: playerAttackPositionDTO)   {
       `${changeBombUserList[1]}에서 ${changeBombUserList[0]}으로 폭탄이 옮겨졌습니다.`,
     );
     // //폭탄 옮긴유저 카운트
-    this.geckosIoService.io.emit("changeBombUser", changeBombUserList);
+    this.server.emit("changeBombUser", changeBombUserList);
     this.cacheManager.incrementBombCount(changeBombUserList[1]);
     //현재 랭커
-    this.geckosIoService.io.emit("currentBombRanker", await  this.cacheManager.getTopPlayerByBombs());
+    this.server.emit("currentBombRanker", await  this.cacheManager.getTopPlayerByBombs());
   }
 
   @OnEvent('bombGame.winner')
@@ -283,7 +290,7 @@ async handleAttackPosition(channel: any, data: playerAttackPositionDTO)   {
       this.logger.log("gameResult", result);
       // this.rankService.gameEnd();
       await this.cacheManager.delGameRankingInfo();
-      this.geckosIoService.io.emit("gameWinner", result);
+      this.server.emit("gameWinner", result);
       if (bombMaster) timeCount += 1;
       if (punchingBag) timeCount += 1;
       await this.statsService.saveTopPlayersToDB(bombMaster, punchingBag);
@@ -291,7 +298,7 @@ async handleAttackPosition(channel: any, data: playerAttackPositionDTO)   {
 
     setTimeout(() => {
       this.bombGameStartFlag = 0;
-      this.geckosIoService.io.emit("playingGame", this.bombGameStartFlag);
+      this.server.emit("playingGame", this.bombGameStartFlag);
     }, this.CHECK_INTERVAL * timeCount);
   }
 
@@ -299,19 +306,19 @@ async handleAttackPosition(channel: any, data: playerAttackPositionDTO)   {
   makeNewItem(itemDotList) {
     if (itemDotList.length === 0) return;
     this.logger.log(`새로 생성된 아이템 ==> ${JSON.stringify(itemDotList)}`);
-    this.geckosIoService.io.emit('newItems', itemDotList);
+    this.server.emit('newItems', itemDotList);
   }
 
   @OnEvent('bombGame.itemPickedUp')
   itemPickedUp(item) {
     this.logger.log(`먹은 아이템 ==> ${JSON.stringify(item)}`);
-    this.geckosIoService.io.emit('itemPickedUp', item);
+    this.server.emit('itemPickedUp', item);
   }
 
   @OnEvent('bombGame.mapShrink')
   mapShrink(num) {
     this.logger.log(`맵 줄어든 단계 ==> ${num}`);
-    this.geckosIoService.io.emit('mapShrink', num);
+    this.server.emit('mapShrink', num);
   }
 
   private safeCheckBombRooms() {
@@ -331,9 +338,9 @@ async handleAttackPosition(channel: any, data: playerAttackPositionDTO)   {
       // Return a new Promise that resolves when the countdown finishes
       await new Promise<void>((resolve) => {
         const countdownInterval = setInterval(() => {
-          this.geckosIoService.io.emit("bombGameReady", countdown);
+          this.server.emit("bombGameReady", countdown);
           if (!this.isBombGameStart()) {
-            this.geckosIoService.io.emit("bombGameReady", -1);
+            this.server.emit("bombGameReady", -1);
             clearInterval(countdownInterval);
             resolve();
             return;
@@ -345,7 +352,7 @@ async handleAttackPosition(channel: any, data: playerAttackPositionDTO)   {
             if (this.isBombGameStart()) {
               this.bombGameStart();
             } else {
-              this.geckosIoService.io.emit("bombGameReady", -1);
+              this.server.emit("bombGameReady", -1);
             }
             resolve(); // Resolve the Promise here
           }
