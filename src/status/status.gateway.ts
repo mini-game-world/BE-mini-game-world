@@ -137,11 +137,10 @@ async handleAttackPosition(channel: any, data: playerAttackPositionDTO)   {
     // 같은 방의 다른 클라이언트들의 위치와 비교하여 히트된 유저들의 아이디만 추출
     const hitResults = Array.from(this.statusService.bombGameRoomPosition.entries())
       .filter(([playerId]) => playerId !== channel.id)
-      .filter(([playerId]) => {
-        // Exclude users in bombUserList
+      .filter(([playerId]) =>  {
         return (
-          !this.statusService.getBombUserList().includes(playerId) ||
-          !this.statusService.checkIsNotPlayer(playerId)
+          this.statusService.getBombUserList().includes(playerId) ||
+          this.statusService.checkIsNotPlayer(playerId)
         );
       })
       .filter(([_, pos]) => {
