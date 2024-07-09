@@ -134,30 +134,27 @@ async handleAttackPosition(channel: any, data: playerAttackPositionDTO)   {
 
     this.logger.log(`Client ${channel.id} attacked position x: ${data.x}, y: ${data.y}`);
 
-    // 같은 방의 다른 클라이언트들의 위치와 비교하여 히트된 유저들의 아이디만 추출
-    const hitResults = Array.from(this.statusService.bombGameRoomPosition.entries())
-      .filter(([playerId]) => playerId !== channel.id)
-      .filter(([playerId]) =>  {
-        return (
-          this.statusService.getBombUserList().includes(playerId) ||
-          this.statusService.checkIsNotPlayer(playerId)
-        );
-      })
-      .filter(([_, pos]) => {
+
+  const bombUserList = new Set(this.statusService.getBombUserList());
+
+  const hitResults = this.statusService.getPlayGameUserList()
+    .filter(playerId => playerId !== channel.id)
+    .filter(playerId => !bombUserList.has(playerId))
+    .filter(playerId => {
+      const pos = this.statusService.bombGameRoomPosition.get(playerId);
+      if (pos) {
         const distance = Math.sqrt(
-          Math.pow(data.x - pos.x, 2) + Math.pow(data.y - pos.y, 2),
+          Math.pow(data.x - pos.x, 2) + Math.pow(data.y - pos.y, 2)
         );
         return distance <= this.HITRADIUS;
-      })
-      .filter(([playerId]) => {
-        // Check if the player is not stunned
-        const playerData =
-          this.statusService.bombGameRoomPosition.get(playerId);
-        return playerData && playerData.isStun !== 1;
-      })
-      .map(([playerId]) => playerId);
+      }
+      return false; // 위치 정보가 없는 경우 제외
+    })
+    .filter(playerId => {
+      const playerData = this.statusService.bombGameRoomPosition.get(playerId);
+      return playerData && playerData.isStun !== 1; // 스턴 상태가 아닌 경우만 필터링
+    });
 
-    // 히트된 유저들에게 개별적으로 히트 여부 알림
     hitResults.forEach(async (playerId) => {
       const clientPosition = this.statusService.bombGameRoomPosition.get(playerId);
       if (clientPosition) {
