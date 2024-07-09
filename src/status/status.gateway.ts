@@ -102,6 +102,10 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     channel.on('pong', () => this.handlePong(channel));
     this.channels.set(channel.id, channel); // 채널 객체 저장
     this.pingCounts.set(channel.id, 0);
+
+    channel.on('latencyRequest', (startTime) => {
+      channel.emit('latencyResponse', startTime);
+    });
   }
 
   private startPing() {
