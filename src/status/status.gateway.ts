@@ -94,6 +94,14 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       this.handleAttackPosition(channel, data),
     );
     channel.on('disconnect', () => this.handleDisconnect(channel));
+
+    setInterval(() => {
+      if (channel.connectionState === 'disconnected') {
+        console.log(`Client ${channel.id} disconnected`);
+        this.handleDisconnect(channel)
+        // 클라이언트가 끊어졌음을 처리
+      }
+    }, 1000); // 1초 간격으로 확인
   }
 
   handleDisconnect(channel: any): any {
