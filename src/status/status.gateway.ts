@@ -113,13 +113,13 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       this.pingCounts.forEach((count, channelId) => {
         if (count >= 3) {
           const channel = this.channels.get(channelId); // 채널 객체 가져오기
-          this.logger.fatal(`getchannel로 뽑아낸 유저입니다~~~~~~~~~~~~~~~~ ${JSON.stringify(channel)}`);
+          this.logger.fatal(`getchannel로 뽑아낸 유저입니다~~~~~~~~~~~~~~~~ ${channel}`);
           if (channel) {
             this.handleDisconnect(channel);
             channel.disconnect();
           }
         } else {
-          this.logger.fatal(`이 유저는 count가 3이 안됬네요~~~~~~~~~~~~~~~~~~~~~ ${channelId}`);
+          this.logger.fatal(`이 유저는 count는 ${count}네요~~~~~~~~~~~~~~~~~~~~~ ${channelId}`);
           this.pingCounts.set(channelId, count + 1);
         }
       });
