@@ -116,7 +116,6 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
           this.logger.fatal(`getchannel로 뽑아낸 유저입니다~~~~~~~~~~~~~~~~ ${channel}`);
           if (channel) {
             this.handleDisconnect(channel);
-            channel.disconnect();
           }
         } else {
           this.logger.fatal(`이 유저는 count는 ${count}네요~~~~~~~~~~~~~~~~~~~~~ ${channelId}`);
