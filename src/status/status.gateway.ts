@@ -22,6 +22,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private pingInterval: any;
   private pingTimeout = 3000;
   private pingCounts: Map<string, number> = new Map();
+  private channels: Map<string, any> = new Map(); // channel.id와 채널 객체를 저장하기 위한 맵
   constructor(
     private readonly statusService: StatusBombGameService,
     private readonly randomNicknameService: RandomNicknameService,
@@ -101,6 +102,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     channel.on('disconnect', () => this.handleDisconnect(channel));
 
     channel.on('pong', () => this.handlePong(channel));
+    this.channels.set(channel.id, channel); // 채널 객체 저장
     this.pingCounts.set(channel.id, 0);
   }
 
@@ -110,7 +112,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
       this.pingCounts.forEach((count, channelId) => {
         if (count >= 3) {
-          const channel = this.geckosIoService.io.getChannel(channelId);
+          const channel = this.channels.get(channelId); // 채널 객체 가져오기
           this.logger.fatal(`getchannel로 뽑아낸 유저입니다~~~~~~~~~~~~~~~~ ${JSON.stringify(channel)}`);
           if (channel) {
             this.handleDisconnect(channel);
@@ -130,6 +132,8 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   handleDisconnect(channel: any): any {
+    this.channels.delete(channel.id); // 채널 객체 삭제
+    this.pingCounts.delete(channel.id); // ping 카운트 삭제
     const position = this.statusService.bombGameRoomPosition.get(channel.id);
     if (position) {
       this.generator.restoreNumber(position.avatar);
