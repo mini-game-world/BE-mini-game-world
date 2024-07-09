@@ -19,6 +19,9 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private CHECK_INTERVAL = 5000;
   private MIN_PLAYERS_FOR_BOMB_GAME = 3; // 최소 플레이어 수, 예시로 4명 설정
   private isCheckingBombRooms = false; // checkBombRooms 실행 여부를 추적
+  private pingInterval: any;
+  private pingTimeout = 3000;
+  private pingCounts: Map<string, number> = new Map();
   constructor(
     private readonly statusService: StatusBombGameService,
     private readonly randomNicknameService: RandomNicknameService,
@@ -46,6 +49,8 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     this.geckosIoService.io.onConnection((channel: any) => {
       this.handleConnection(channel);
     });
+
+    this.startPing();
   }
 
   async handleConnection(channel: any): Promise<void> {
@@ -94,6 +99,34 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       this.handleAttackPosition(channel, data),
     );
     channel.on('disconnect', () => this.handleDisconnect(channel));
+
+    channel.on('pong', () => this.handlePong(channel));
+    this.pingCounts.set(channel.id, 0);
+  }
+
+  private startPing() {
+    this.pingInterval = setInterval(() => {
+      this.geckosIoService.io.emit('ping');
+
+      this.pingCounts.forEach((count, channelId) => {
+        if (count >= 3) {
+          const channel = this.geckosIoService.io.getChannel(channelId);
+          this.logger.fatal(`getchannel로 뽑아낸 유저입니다~~~~~~~~~~~~~~~~ ${JSON.stringify(channel)}`);
+          if (channel) {
+            this.handleDisconnect(channel);
+            channel.disconnect();
+          }
+        } else {
+          this.logger.fatal(`이 유저는 count가 3이 안됬네요~~~~~~~~~~~~~~~~~~~~~ ${channelId}`);
+          this.pingCounts.set(channelId, count + 1);
+        }
+      });
+    }, 1000);
+  }
+
+  private handlePong(channel: any) {
+    this.logger.fatal(`클라로부터 pong을 받았습니다~~~~~~~~~~~~~~~~ ${channel}`);
+    this.pingCounts.set(channel.id, 0);
   }
 
   handleDisconnect(channel: any): any {
