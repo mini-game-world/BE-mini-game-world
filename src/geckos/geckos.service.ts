@@ -6,39 +6,39 @@ dotenv.config();
 
 @Injectable()
 export class GeckosIoService {
-  private readonly logger = new Logger('GeckosIoService');
-  public io: any;
-  private initialized = false;
-  private initializationPromise: Promise<void>;
+  // private readonly logger = new Logger('GeckosIoService');
+  // public io: any;
+  // private initialized = false;
+  // private initializationPromise: Promise<void>;
 
-  async initialize() {
-    if (this.initialized) {
-      return;
-    }
+  // async initialize() {
+  //   if (this.initialized) {
+  //     return;
+  //   }
 
-    this.initializationPromise = new Promise(async (resolve) => {
-      const customIceServers = [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' }
-      ];
+  //   this.initializationPromise = new Promise(async (resolve) => {
+  //     const customIceServers = [
+  //       { urls: 'stun:stun.l.google.com:19302' },
+  //       { urls: 'stun:stun1.l.google.com:19302' }
+  //     ];
 
-      const geckosModule = await import('@geckos.io/server');
-      const geckos = geckosModule.default;
+  //     const geckosModule = await import('@geckos.io/server');
+  //     const geckos = geckosModule.default;
 
-      this.io = geckos({ iceServers: customIceServers });
-      this.io.listen(process.env.UDP_PORT, { host: '0.0.0.0' });
-      this.logger.log('Geckos.io server initialized');
-      this.initialized = true;
-      resolve();
-    });
+  //     this.io = geckos({ iceServers: customIceServers });
+  //     this.io.listen(process.env.UDP_PORT, { host: '0.0.0.0' });
+  //     this.logger.log('Geckos.io server initialized');
+  //     this.initialized = true;
+  //     resolve();
+  //   });
 
-    return this.initializationPromise;
-  }
+  //   return this.initializationPromise;
+  // }
 
   async waitForInitialization() {
-    if (!this.initializationPromise) {
-      await this.initialize();
-    }
-    await this.initializationPromise;
+    // if (!this.initializationPromise) {
+    //   await this.initialize();
+    // }
+    // await this.initializationPromise;
   }
 }
