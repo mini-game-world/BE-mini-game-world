@@ -42,9 +42,10 @@ export class StatusBombGameService {
 
 
   //----아이템 생성 좌표 ----//
-  private HOUSE_HILL_BRIDGE_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 2304, y: 160 ,isNotExist:true };
-  private WATER_BRIDGE_CENTER_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 1120, y: 1824 ,isNotExist:true };
-  private TREASURE_CHEST_HILL_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 3328, y: 512 ,isNotExist:true };
+  private HOUSE_HILL_BRIDGE_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 2304, y: 160, isNotExist: true };
+  private WATER_BRIDGE_CENTER_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 1120, y: 1824, isNotExist: true };
+  private TREASURE_CHEST_HILL_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 3328, y: 512, isNotExist: true };
+  private IN_FRONT_OF_HUT_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 1312, y: 512, isNotExist: true };
   private readonly ITEM_RADIUS: number = 120;
 
 
@@ -357,6 +358,13 @@ export class StatusBombGameService {
         y: this.TREASURE_CHEST_HILL_ITEM.y,
       });
     }
+    if (this.IN_FRONT_OF_HUT_ITEM.isNotExist) {
+      this.IN_FRONT_OF_HUT_ITEM.isNotExist = false;
+      itemDotList.push({
+        x: this.IN_FRONT_OF_HUT_ITEM.x,
+        y: this.IN_FRONT_OF_HUT_ITEM.y,
+      });
+    }
 
     this.eventEmitter.emit("bombGame.newItems", itemDotList);
   }
@@ -382,6 +390,7 @@ export class StatusBombGameService {
     this.HOUSE_HILL_BRIDGE_ITEM.isNotExist = true;
     this.WATER_BRIDGE_CENTER_ITEM.isNotExist = true;
     this.TREASURE_CHEST_HILL_ITEM.isNotExist = true;
+    this.IN_FRONT_OF_HUT_ITEM.isNotExist = true;
   }
 
   checkOverlappingItemUser(clientId: string, x: number, y: number) {
@@ -392,6 +401,7 @@ export class StatusBombGameService {
       this.HOUSE_HILL_BRIDGE_ITEM,
       this.WATER_BRIDGE_CENTER_ITEM,
       this.TREASURE_CHEST_HILL_ITEM,
+      this.IN_FRONT_OF_HUT_ITEM,
     ];
 
     items.forEach(item => {
