@@ -113,6 +113,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
           const channel = this.channels.get(channelId); // 채널 객체 가져오기
           if (channel) {
             this.handleDisconnect(channel);
+            channel.close();
           }
         } else {
           this.pingCounts.set(channelId, count + 1);

@@ -365,17 +365,17 @@ export class StatusBombGameService {
     if (this.intervalId === null) { // 이미 실행 중인지 확인
       this.intervalId = setInterval(() => {
         this.mapShrink();
-      }, 2000); // 2초마다 실행
+      }, 2500); // 2.5초마다 실행
     }
   }
 
   private mapShrink() {
-    if (this.mapShrinkNumber > 15) {
+    if (this.mapShrinkNumber >= 40) {
       this.eventEmitter.emit("bombGame.mapShrink", this.mapShrinkNumber);
       return;
     }
     this.eventEmitter.emit("bombGame.mapShrink", this.mapShrinkNumber);
-    this.mapShrinkNumber++;
+    this.mapShrinkNumber += 2;
   }
 
   private setGameItemStatus() {
