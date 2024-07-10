@@ -370,7 +370,7 @@ export class StatusBombGameService {
   }
 
   private mapShrink() {
-    if (this.mapShrinkNumber > 15) {
+    if (this.mapShrinkNumber >= 30) {
       this.eventEmitter.emit("bombGame.mapShrink", this.mapShrinkNumber);
       return;
     }
