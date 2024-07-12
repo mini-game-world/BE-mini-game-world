@@ -13,12 +13,14 @@ import { SocketMetricsModule } from './socket-metrics/socket-metrics.module.js';
 import { GameControllerModule } from './game-controller/game-controller.module.js';
 
 import * as dotenv from 'dotenv';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 dotenv.config();
 
 @Module({
   imports: [
     MongooseModule.forRoot(process.env.MONGO_URI),
+    EventEmitterModule.forRoot(),
     StatusModule,
     UsersModule,
     GuestModule,

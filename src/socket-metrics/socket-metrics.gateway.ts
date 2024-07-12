@@ -7,14 +7,16 @@ import {
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import { Counter, Gauge } from 'prom-client';
 import { GeckosIoService } from '../geckos/geckos.service.js';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 
 @WebSocketGateway()
-export class SocketMetricsGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
+export class SocketMetricsGateway implements OnGatewayConnection, OnGatewayInit {
   constructor(
     @InjectMetric('websocket_connections_total') private readonly connectionsTotal: Counter<string>,
     @InjectMetric('active_users') private readonly activeUsers: Gauge<string>,
     @InjectMetric('websocket_disconnections_total') private readonly disconnectionsTotal: Counter<string>,
     private readonly geckosIoService: GeckosIoService,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   async afterInit() {
@@ -22,10 +24,6 @@ export class SocketMetricsGateway implements OnGatewayConnection, OnGatewayDisco
 
     this.geckosIoService.io.onConnection((channel: any) => {
       this.handleConnection(channel);
-
-      channel.on('disconnect', () => {
-        this.handleDisconnect(channel);
-      });
     });
 
   }
@@ -35,8 +33,13 @@ export class SocketMetricsGateway implements OnGatewayConnection, OnGatewayDisco
     this.activeUsers.inc();
   }
 
-  handleDisconnect(channel: any) {
+  handleDisconnect() {
     this.disconnectionsTotal.inc();
     this.activeUsers.dec();
+  }
+
+  @OnEvent('user.disconnected')
+  disconnectedSignal(){
+    this.handleDisconnect()
   }
 }
