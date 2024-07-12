@@ -10,7 +10,7 @@ import { RedisModule } from './redis/redis.module.js';
 import { ChattingModule } from './chatting/chatting.module.js';
 import { GeckosIoModule } from './geckos/geckos.module.js';
 import { SocketMetricsModule } from './socket-metrics/socket-metrics.module.js';
-import { GameControllerModule } from './game-controller/game-controller.module';
+import { GameControllerModule } from './game-controller/game-controller.module.js';
 
 import * as dotenv from 'dotenv';
 

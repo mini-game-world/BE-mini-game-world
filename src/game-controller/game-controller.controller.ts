@@ -1,6 +1,6 @@
 import { Controller, Logger, Post, Req, UnauthorizedException } from '@nestjs/common';
-import { StatusGateway } from '../status/status.gateway';
-import { ResponseDTO } from '../common/response.DTO';
+import { StatusGateway } from '../status/status.gateway.js';
+import { ResponseDTO } from '../common/response.DTO.js';
 import { Request } from 'express';
 
 @Controller('game-controller')
@@ -10,7 +10,7 @@ export class GameControllerController {
   constructor(private  readonly statusGateway: StatusGateway) {
   }
 
-  @Post('on')
+  @Post('off')
   async manualGameStartOn(@Req() request: Request){
     const apiKey = request.headers['start-api-key'];
     if (apiKey !== process.env.GAME_START_TIMING_ADJUSTMENT_KEY) {
@@ -21,24 +21,24 @@ export class GameControllerController {
 
     this.statusGateway.manualGameStartOn()
 
-    ResponseDTO.builder()
+   return  ResponseDTO.builder()
       .setSuccess(true)
       .setData(' 자동 게임시작 일시정지 ')
       .build()
   }
 
-  @Post('off')
+  @Post('on')
   async manualGameStartOff(@Req() request: Request){
     const apiKey = request.headers['start-api-key'];
     if (apiKey !== process.env.GAME_START_TIMING_ADJUSTMENT_KEY) {
       throw new UnauthorizedException('Invalid API key');
     }
 
-    this.logger.log('게임 자동시작 정지');
+    this.logger.log('게임 자동시작');
 
     this.statusGateway.manualGameStartOff()
 
-    ResponseDTO.builder()
+   return   ResponseDTO.builder()
       .setSuccess(true)
       .setData(' 자동 게임시작 ')
       .build()
