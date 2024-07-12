@@ -53,8 +53,8 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   async handleConnection(channel: any): Promise<void> {
-    const x = Math.floor(Math.random() * (1760 - 960 + 1)) + 960;
-    const y = Math.floor(Math.random() * (640 - 320 + 1)) + 320;
+    const x = Math.floor(Math.random() * (2080 - 1280 + 1)) + 1280;
+    const y = Math.floor(Math.random() * (1280 - 960 + 1)) + 960;
     const randomNum = this.generator.getRandomNumber();
     const randomNickname = await this.randomNicknameService.getRandomNickname();
     this.statusService.bombGameRoomPosition.set(channel.id, {
