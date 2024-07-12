@@ -22,7 +22,12 @@ export class SocketMetricsGateway implements OnGatewayConnection, OnGatewayDisco
 
     this.geckosIoService.io.onConnection((channel: any) => {
       this.handleConnection(channel);
+
+      channel.on('disconnect', () => {
+        this.handleDisconnect(channel);
+      });
     });
+
   }
 
   handleConnection(channel: any) {
