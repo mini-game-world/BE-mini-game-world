@@ -13,6 +13,7 @@ import { RandomNicknameService } from '../random-nickname/random-nickname.servic
 import { GeckosIoService } from '../geckos/geckos.service.js';
 import { CacheService } from '../cache/cache.service.js';
 import { StatsService } from '../cache/stats.service.js';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @WebSocketGateway({ cors: { origin: "*" } })
 export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
@@ -27,6 +28,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     private readonly geckosIoService: GeckosIoService,
     private readonly cacheManager: CacheService,
     private readonly statsService: StatsService,
+    private eventEmitter: EventEmitter2,
   ) {
     setInterval(this.safeCheckBombRooms.bind(this), this.CHECK_INTERVAL);
   }
@@ -145,6 +147,9 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     this.logger.log(`Client disconnected: ${channel.id}`);
     const size = this.statusService.bombGameRoomPosition.size;
     this.logger.log(`Number of connected clients: ${size}`);
+
+    this.eventEmitter.emit("user.disconnected",);
+
   }
 
   playerPosition(channel: any, data: playerMovementDTO): void {

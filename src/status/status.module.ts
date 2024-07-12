@@ -8,7 +8,7 @@ import { RankService } from './rank.service.js';
 import { GeckosIoModule } from '../geckos/geckos.module.js';
 
 @Module({
-    imports: [EventEmitterModule.forRoot(), CacheModule, RandomNicknameModule, GeckosIoModule],
+    imports: [ CacheModule, RandomNicknameModule, GeckosIoModule],
     providers: [StatusGateway, StatusBombGameService, RankService],
     exports: [StatusBombGameService, StatusGateway],
 })
