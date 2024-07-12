@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { EventEmitterModule } from '@nestjs/event-emitter';
 import { StatusGateway } from './status.gateway.js';
 import { StatusBombGameService } from './status.service.js';
 import { CacheModule } from '../cache/cache.module.js';
