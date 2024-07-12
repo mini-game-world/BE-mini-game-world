@@ -6,7 +6,8 @@ scrape_configs:
     static_configs:
       ## targets에서 정의한 이름은 Docker Compose 에서 정의한 서비스 이름임!
       ## Docker Compose 네트워크 내부에서 서비스간 통신할때 사용하는 이름 ...
-      - targets: ['nest-app:3000']
+      ## 그게아니라면 실제 아이피 주소 .
+      - targets: ['localhost:3000']
 
   - job_name: 'node-exporter'
     static_configs:
