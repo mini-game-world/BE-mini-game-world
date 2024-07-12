@@ -27,7 +27,7 @@ jobs:
         run: npm run build
 
       - name: 압축하기
-        run: tar -czvf project.tar.gz dist .env package.json package-lock.json
+        run: tar -czvf project.tar.gz dist .env package.json package-lock.json prometheus.yml
 
       - name: SCP로 EC2에 빌드된 파일 전송하기
         uses: appleboy/scp-action@v0.1.7
