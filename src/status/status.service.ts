@@ -42,10 +42,10 @@ export class StatusBombGameService {
 
 
   //----아이템 생성 좌표 ----//
-  private HOUSE_HILL_BRIDGE_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 2304, y: 160, isNotExist: true };
-  private WATER_BRIDGE_CENTER_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 1120, y: 1824, isNotExist: true };
-  private TREASURE_CHEST_HILL_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 3328, y: 512, isNotExist: true };
-  private IN_FRONT_OF_HUT_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 1312, y: 512, isNotExist: true };
+  private HOUSE_HILL_BRIDGE_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 2624, y: 800, isNotExist: true };
+  private WATER_BRIDGE_CENTER_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 1440, y: 2464, isNotExist: true };
+  private TREASURE_CHEST_HILL_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 3648, y: 1152, isNotExist: true };
+  private IN_FRONT_OF_HUT_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 1632, y: 1152, isNotExist: true };
   private readonly ITEM_RADIUS: number = 120;
 
 
@@ -251,6 +251,7 @@ export class StatusBombGameService {
           clearInterval(this.intervalId);
           this.intervalId = null;
           this.mapShrinkNumber = 0;
+          this.BOMB_TIME = 15;
           return;
         }
 
@@ -263,6 +264,7 @@ export class StatusBombGameService {
 
         this.eventEmitter.emit('bombGame.newBombUsers', newBombUsers);
 
+        if (this.BOMB_TIME > 7) this.BOMB_TIME -= 2;
         remainingTime = this.BOMB_TIME;
 
         //아이템좌표 생성
