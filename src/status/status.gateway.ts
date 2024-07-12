@@ -39,6 +39,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private bombGameStartFlag = 0;
   private generator = new RandomNumberGenerator(1, 30);
 
+  private manualGameStartFlag = false;
 
   async afterInit() {
     this.logger.log('Init StatusGateway');
@@ -311,7 +312,18 @@ async handleAttackPosition(channel: any, data: playerAttackPositionDTO)   {
     this.geckosIoService.io.emit('mapShrink', num);
   }
 
+  manualGameStartOn(){
+    this.manualGameStartFlag = true;
+  }
+
+  manualGameStartOff(){
+    this.manualGameStartFlag = false;
+  }
+
+
   private safeCheckBombRooms() {
+    if(this.manualGameStartFlag) return;
+
     if (this.isCheckingBombRooms) {
       return;
     }
@@ -361,4 +373,5 @@ async handleAttackPosition(channel: any, data: playerAttackPositionDTO)   {
     }
     return false;
   }
+
 }

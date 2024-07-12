@@ -10,6 +10,6 @@ import { GeckosIoModule } from '../geckos/geckos.module.js';
 @Module({
     imports: [EventEmitterModule.forRoot(), CacheModule, RandomNicknameModule, GeckosIoModule],
     providers: [StatusGateway, StatusBombGameService, RankService],
-    exports: [StatusBombGameService],
+    exports: [StatusBombGameService, StatusGateway],
 })
 export class StatusModule {}
