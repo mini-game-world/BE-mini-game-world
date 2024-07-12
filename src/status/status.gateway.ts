@@ -16,7 +16,7 @@ import { StatsService } from '../cache/stats.service.js';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @WebSocketGateway({ cors: { origin: "*" } })
-export class StatusGateway implements OnGatewayInit, OnGatewayConnection {
+export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   private CHECK_INTERVAL = 5000;
   private MIN_PLAYERS_FOR_BOMB_GAME = 3; // 최소 플레이어 수, 예시로 4명 설정
   private isCheckingBombRooms = false; // checkBombRooms 실행 여부를 추적
@@ -100,7 +100,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection {
     channel.on('attackPosition', (data: playerAttackPositionDTO) =>
       this.handleAttackPosition(channel, data),
     );
-    channel.on('disconnect', () => this.handleDisconnection(channel));
+    channel.on('disconnect', () => this.handleDisconnect(channel));
 
     channel.on('pong', () => this.handlePong(channel));
     this.channels.set(channel.id, channel); // 채널 객체 저장
@@ -115,7 +115,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection {
         if (count >= 3) {
           const channel = this.channels.get(channelId); // 채널 객체 가져오기
           if (channel) {
-            this.handleDisconnection(channel);
+            // this.handleDisconnect(channel);
             channel.close();
           }
         } else {
@@ -129,7 +129,7 @@ export class StatusGateway implements OnGatewayInit, OnGatewayConnection {
     this.pingCounts.set(channel.id, 0);
   }
 
-  handleDisconnection(channel: any): any {
+  handleDisconnect(channel: any): any {
     this.channels.delete(channel.id); // 채널 객체 삭제
     this.pingCounts.delete(channel.id); // ping 카운트 삭제
     const position = this.statusService.bombGameRoomPosition.get(channel.id);
