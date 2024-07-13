@@ -206,9 +206,6 @@ export class StatusBombGameService {
 
     let remainingTime = this.BOMB_TIME;
 
-    //게임 아이템 상태 초기화
-    this.setGameItemStatus();
-
     const timerInterval = setInterval(() => {
       remainingTime -= 1;
       this.eventEmitter.emit('bombGame.timer', remainingTime);
@@ -252,6 +249,8 @@ export class StatusBombGameService {
           this.intervalId = null;
           this.mapShrinkNumber = 0;
           this.BOMB_TIME = 15;
+          //게임 아이템 상태 초기화
+          this.setGameItemStatus();
           return;
         }
 
