@@ -429,6 +429,6 @@ export class StatusBombGameService {
   }
 
   private randomItemNumber() {
-    return Math.floor(Math.random() * 3);
+    return Math.floor(Math.random() * 4);
   }
 }
