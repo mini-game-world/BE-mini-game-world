@@ -280,8 +280,8 @@ async handleAttackPosition(channel: any, data: playerAttackPositionDTO)   {
       const punchingBag = await this.cacheManager.getTopPlayerByHits();
       const result = {
         gameWinner: gameWinner,
-        BombMaster: bombMaster || { playerId: '', count: 0 },
-        PunchingBag: punchingBag || { playerId: '', count: 0 },
+        BombMaster: bombMaster?.playerId || '',
+        PunchingBag: punchingBag?.playerId || '',
       };
       this.logger.log("gameResult", result);
       // this.rankService.gameEnd();
