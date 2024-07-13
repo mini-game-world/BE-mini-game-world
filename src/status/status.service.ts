@@ -42,10 +42,10 @@ export class StatusBombGameService {
 
 
   //----아이템 생성 좌표 ----//
-  private HOUSE_HILL_BRIDGE_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 2624, y: 800, isNotExist: true };
-  private WATER_BRIDGE_CENTER_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 1440, y: 2464, isNotExist: true };
-  private TREASURE_CHEST_HILL_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 3648, y: 1152, isNotExist: true };
-  private IN_FRONT_OF_HUT_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 1632, y: 1152, isNotExist: true };
+  private HOUSE_HILL_BRIDGE_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 2304, y: 800, isNotExist: true };
+  private WATER_BRIDGE_CENTER_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 1120, y: 2464, isNotExist: true };
+  private TREASURE_CHEST_HILL_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 3328, y: 1152, isNotExist: true };
+  private IN_FRONT_OF_HUT_ITEM: { x: number; y: number; isNotExist: boolean } = { x: 1312, y: 1152, isNotExist: true };
   private readonly ITEM_RADIUS: number = 120;
 
 
