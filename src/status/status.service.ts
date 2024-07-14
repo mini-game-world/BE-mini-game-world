@@ -253,7 +253,7 @@ export class StatusBombGameService {
             //게임 아이템 상태 초기화
             this.setGameItemStatus();
             return;
-          })
+          }, 500)
         }
 
         this.bombUserList.clear();
