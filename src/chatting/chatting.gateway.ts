@@ -12,7 +12,7 @@ import { GeckosIoService } from '../geckos/geckos.service.js';
 
 @WebSocketGateway({ cors: { origin: '*' } })
 export class ChattingGateway
-  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+  implements OnGatewayInit, OnGatewayConnection
 {
   private logger: Logger = new Logger('Chatting-Gateway');
 
@@ -36,12 +36,6 @@ export class ChattingGateway
     channel.on('message', (data: string) =>
       this.handleMessage(channel, data),
     );
-
-    channel.on('disconnect', () => this.handleDisconnect(channel));
-  }
-
-  handleDisconnect(channel: any): any {
-    this.logger.log(`chatting disconnect client.id --->${channel.id}`);
   }
 
   async handleMessage(channel: any, data: string) {
