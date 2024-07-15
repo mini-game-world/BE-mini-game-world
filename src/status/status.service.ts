@@ -236,21 +236,23 @@ export class StatusBombGameService {
 
         const checkWinner = this.checkWinner();
         if (checkWinner) {
-          this.logger.debug(`checkWinner ${JSON.stringify(checkWinner)}`);
-          this.eventEmitter.emit('bombGame.winner', checkWinner);
-          this.eventEmitter.emit('bombGame.playInfo', this.playUserCount);
-          this.bombGameRoomPosition.forEach((value) => {
-            value.isPlay = 0;
-            value.isDead = 0;
-          });
-          this.deadPlayers = [];
-          clearInterval(timerInterval);
-          clearInterval(this.intervalId);
-          this.intervalId = null;
-          this.mapShrinkNumber = 0;
-          this.BOMB_TIME = 15;
-          //게임 아이템 상태 초기화
-          this.setGameItemStatus();
+          setTimeout(() => {
+            this.logger.debug(`checkWinner ${JSON.stringify(checkWinner)}`);
+            this.eventEmitter.emit('bombGame.winner', checkWinner);
+            this.eventEmitter.emit('bombGame.playInfo', this.playUserCount);
+            this.bombGameRoomPosition.forEach((value) => {
+              value.isPlay = 0;
+              value.isDead = 0;
+            });
+            this.deadPlayers = [];
+            clearInterval(timerInterval);
+            clearInterval(this.intervalId);
+            this.intervalId = null;
+            this.mapShrinkNumber = 0;
+            this.BOMB_TIME = 15;
+            //게임 아이템 상태 초기화
+            this.setGameItemStatus();
+          }, 500)
           return;
         }
 
