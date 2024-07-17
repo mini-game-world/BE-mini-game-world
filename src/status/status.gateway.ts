@@ -15,7 +15,7 @@ import { CacheService } from '../cache/cache.service.js';
 import { StatsService } from '../cache/stats.service.js';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
-@WebSocketGateway({ cors: { origin: "*" } })
+@WebSocketGateway({ cors: { origin: "https://mini-game-world.com" } })
 export class StatusGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   private CHECK_INTERVAL = 5000;
   private MIN_PLAYERS_FOR_BOMB_GAME = 3; // 최소 플레이어 수, 예시로 4명 설정
