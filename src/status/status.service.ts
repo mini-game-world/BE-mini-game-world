@@ -121,7 +121,7 @@ export class StatusBombGameService {
           userWithinRadius,
           clientId,
         ]);
-        this.logger.error(
+        this.logger.log(
           `Updated bombUserList: ${JSON.stringify(Array.from(this.bombUserList.entries()))}`,
         );
 
@@ -158,7 +158,7 @@ export class StatusBombGameService {
           clientId,
           userWithinRadius,
         ]);
-        this.logger.fatal(
+        this.logger.log(
           `Updated bombUserList: ${JSON.stringify(Array.from(this.bombUserList.keys()))}`,
         );
 
@@ -177,10 +177,6 @@ export class StatusBombGameService {
   startBombGameWithTimer(): void {
     const clientsInRoom: Set<string> = new Set();
 
-    this.logger.warn(
-      `bbombGameRoomPosition = > ${Array.from(this.bombGameRoomPosition.keys())}`,
-    );
-
     for (const [client, position] of this.bombGameRoomPosition.entries()) {
       clientsInRoom.add(client);
     }
@@ -190,11 +186,11 @@ export class StatusBombGameService {
     //게임 시작유저 + 폭탄유저 설정
     this.setPlayGameUser(clientsInRoom);
 
-    this.logger.warn(
+    this.logger.log(
       `Bomb game started in room bomb and userlist ${this.getPlayGameUserList()}`,
     );
 
-    this.logger.warn(
+    this.logger.log(
       ` this.getBombUserList()  ==== >  ${this.getBombUserList()}`,
     );
 
@@ -210,7 +206,7 @@ export class StatusBombGameService {
       remainingTime -= 1;
       this.eventEmitter.emit('bombGame.timer', remainingTime);
 
-      this.logger.debug(`bombTimer ${remainingTime}`);
+      this.logger.log(`bombTimer ${remainingTime}`);
       if (remainingTime <= 0) {
         this.eventEmitter.emit('bombGame.timer', remainingTime);
 
@@ -218,7 +214,7 @@ export class StatusBombGameService {
           this.bombUserList.keys(),
         );
 
-        this.logger.log(`bombUserMapToList ${bombUserMapToList}`);
+        this.logger.log(`dead bomb users : ${bombUserMapToList}`);
         this.eventEmitter.emit('bombGame.deadUsers', bombUserMapToList);
 
         this.deleteBombUserInPlayUserList(bombUserMapToList);
@@ -237,7 +233,7 @@ export class StatusBombGameService {
         const checkWinner = this.checkWinner();
         if (checkWinner) {
           setTimeout(() => {
-            this.logger.debug(`checkWinner ${JSON.stringify(checkWinner)}`);
+            this.logger.log(`checkWinner ${JSON.stringify(checkWinner)}`);
             this.eventEmitter.emit('bombGame.winner', checkWinner);
             this.eventEmitter.emit('bombGame.playInfo', this.playUserCount);
             this.bombGameRoomPosition.forEach((value) => {
@@ -261,7 +257,7 @@ export class StatusBombGameService {
 
         const newBombUsers: string[] = Array.from(this.bombUserList.keys());
 
-        this.logger.debug(`newBombUser ${newBombUsers}`);
+        this.logger.log(`newBombUsers : ${newBombUsers}`);
 
         this.eventEmitter.emit('bombGame.newBombUsers', newBombUsers);
 
