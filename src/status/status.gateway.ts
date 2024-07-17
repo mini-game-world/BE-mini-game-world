@@ -172,10 +172,6 @@ async handleAttackPosition(channel: any, data: playerAttackPositionDTO)   {
       return;
     }
 
-
-    this.logger.log(`Client ${channel.id} attacked position x: ${data.x}, y: ${data.y}`);
-
-
   const bombUserList = new Set(this.statusService.getBombUserList());
 
   const hitResults = this.statusService.getPlayGameUserList()
@@ -255,7 +251,6 @@ async handleAttackPosition(channel: any, data: playerAttackPositionDTO)   {
 
   @OnEvent('bombGame.newBombUsers')
   handleBombGameNewBombUsers(bombUserList: string[]) {
-    this.logger.log(`새로운 폭탄멤버는 ${bombUserList}`);
     this.geckosIoService.io.emit("bombUsers", bombUserList);
   }
 
@@ -307,13 +302,11 @@ async handleAttackPosition(channel: any, data: playerAttackPositionDTO)   {
 
   @OnEvent('bombGame.itemPickedUp')
   itemPickedUp(item) {
-    this.logger.log(`먹은 아이템 ==> ${JSON.stringify(item)}`);
     this.geckosIoService.io.emit('itemPickedUp', item);
   }
 
   @OnEvent('bombGame.mapShrink')
   mapShrink(num) {
-    this.logger.log(`맵 줄어든 단계 ==> ${num}`);
     this.geckosIoService.io.emit('mapShrink', num);
   }
 
