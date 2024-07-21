@@ -46,11 +46,10 @@ jobs:
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           script_stop: true
           script: |
-            rm -rf /home/ubuntu/BE-mini-game-world/current
-            mkdir /home/ubuntu/BE-mini-game-world/current
-            mv /home/ubuntu/BE-mini-game-world/tobe/project.tar.gz /home/ubuntu/BE-mini-game-world/current/project.tar.gz
-            cd /home/ubuntu/BE-mini-game-world/current
+            mv /home/ubuntu/BE-mini-game-world/tobe/project.tar.gz /home/ubuntu/BE-mini-game-world/project.tar.gz
+            cd /home/ubuntu/BE-mini-game-world
             tar -xvf project.tar.gz
+            rm project.tar.gz
             # NVM 로드 및 npm 설치 경로 설정
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
